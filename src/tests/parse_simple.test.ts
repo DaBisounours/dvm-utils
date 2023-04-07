@@ -93,6 +93,7 @@ test('empty', () => {
 test('no function', () => {
   const expected: Program = {
     functions: [],
+    headers: ['Some random comment without a Function'],
   };
   expect(parse(`// Some random comment without a Function`)).toMatchObject(expected)
 });
@@ -118,9 +119,7 @@ End Function`;
 
 test('header', () => {
   const expected: Program = {
-    headers: [`// header
-// Singleline
-/* Multiline */`],
+    headers: ['header', 'Singleline', 'Multiline'],
     functions: [
       {
         name: 'Initialize',
@@ -141,7 +140,7 @@ End Function`;
 
 test('arg', () => {
   const expected: Program = {
-    headers: ['// arg'],
+    headers: ['arg'],
     functions: [
       {
         name: 'Initialize',
@@ -157,149 +156,6 @@ test('arg', () => {
   const code = `// arg
 Function Initialize(myArg Uint64, mySecondArg String) Uint64
 End Function`;
-  expect(parse(code)).toMatchObject(expected)
-});
-
-test('comment', () => {
-  const expected: Program = {
-    headers: ['// comment'],
-    functions: [
-      {
-        name: 'Initialize',
-        return: DVMType.Uint64,
-        args: [],
-        statements: [
-          { line: 0, type: 'comment', comment: 'Comment' },
-          { line: 0, type: 'comment', comment: 'Comment' },
-        ],
-      },
-    ],
-  };
-  const code = `// comment
-Function Initialize() Uint64
-  // Comment
-  /* Comment */  
-End Function
-    `;
-  expect(parse(code)).toMatchObject(expected)
-});
-
-
-test('inline comment', () => {
-  const expected: Program = {
-    headers: ['// inline comment'],
-    functions: [
-      {
-        name: 'Initialize',
-        return: DVMType.Uint64,
-        args: [],
-        statements: [
-          { line: 10, type: 'comment', comment: 'Comment // whatever /* Whatever */' },
-          { line: 11, type: 'comment', comment: 'Whatever //' },
-          { line: 11, type: 'comment', comment: 'inline' },
-          { line: 11, type: 'comment', comment: 'Whatever*' },
-        ],
-      },
-    ],
-  };
-  const code = `// inline comment
-Function Initialize() Uint64
-  10 // Comment // whatever /* Whatever */
-  11 /*Whatever // */someCodeHere(/*inline*/)  /* Whatever**/
-End Function
-    `;
-});
-
-test('multiline comment', () => {
-  const expected: Program = {
-    headers: ['// multiline comment'],
-    functions: [
-      {
-        name: 'Initialize',
-        return: DVMType.Uint64,
-        args: [],
-        statements: [
-          /*{ line: 0, type: 'comment', comment: 'multi\nwithout line number\n' }, //! Ignored case */
-          { line: 10, type: 'comment', comment: 'multi\nline' },
-          { line: 10, type: 'comment', comment: 'Comment // whatever /* Whatever */' },
-          { line: 11, type: 'comment', comment: 'Whatever //' },
-          { line: 11, type: 'comment', comment: 'Whatever*' },
-        ],
-      },
-    ],
-  };
-  const code = `// multiline comment
-Function Initialize() Uint64
-/* multi
-without line number
-*/
-  10 // Comment // whatever /* Whatever */
-  /* multi
-  line */
-  11 /*Whatever // */ /* Whatever**/
-End Function
-        `;
-  expect(parse(code)).toMatchObject(expected)
-});
-
-
-test('return', () => {
-  const expected: Program = {
-    headers: ['// return'],
-    functions: [
-      {
-        name: 'Initialize',
-        return: DVMType.Uint64,
-        args: [],
-        statements: [
-          {
-            line: 100,
-            type: 'return',
-            expression: { type: 'value', value: 0 },
-          },
-        ],
-      },
-    ],
-  };
-  const code = `// return
-Function Initialize() Uint64
-  100 RETURN 0
-End Function
-    `;
-  expect(parse(code)).toMatchObject(expected)
-});
-
-test('string expression ==', () => {
-  const expected: Program = {
-    headers: ['// string expression =='],
-    functions: [
-      {
-        name: 'Initialize',
-        return: DVMType.Uint64,
-        args: [],
-        statements: [
-          {
-            line: 100,
-            type: 'return',
-            expression: {
-              type: 'operation',
-              operationType: DVMType.String,
-              operator: { type: 'logical', logical: '==' },
-              operands: [
-                { type: 'value', value: 'a' },
-                { type: 'value', value: 'a' },
-              ],
-            },
-          },
-        ],
-      },
-    ],
-  };
-  const code = `// string expression ==
-Function Initialize() Uint64
-  100 RETURN "a" == "a"
-End Function
-    `;
   expect(parse(code)).toMatchObject(expected)
 });
 

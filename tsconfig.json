@@ -2,7 +2,10 @@
     "compilerOptions": {
         "esModuleInterop": true,
         "declaration": true,
+        "target": "ES2022",
+        "allowSyntheticDefaultImports": true,
         "outDir": "dist",
+        "types": ["src/types/raw-loader.d.ts"]
     },
     "exclude": [
         "node_modules",
