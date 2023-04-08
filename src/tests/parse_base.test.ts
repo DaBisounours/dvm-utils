@@ -159,3 +159,28 @@ End Function`;
   expect(parse(code)).toMatchObject(expected)
 });
 
+
+
+test('comment', () => {
+  const expected: Program = {
+    headers: ['comment'],
+    functions: [
+      {
+        name: 'Initialize',
+        return: DVMType.Uint64,
+        args: [],
+        statements: [
+          { line: 0, type: 'comment', comment: 'Comment' },
+          { line: 0, type: 'comment', comment: 'Comment' },
+        ],
+      },
+    ],
+  };
+  const code = `// comment
+Function Initialize() Uint64
+  // Comment
+  /* Comment */  
+End Function
+    `;
+  expect(parse(code)).toMatchObject(expected)
+});

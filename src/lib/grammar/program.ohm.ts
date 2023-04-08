@@ -35,13 +35,14 @@ DVMProgram {
     = ident spaces type
 
 	FunctionBody
-    = Line*
+    = (Line|Comment)*
+    
 
 	lineNumber
     = digit+
 
 	Line
-    = lineNumber Statement?
+    = multilineComment* lineNumber multilineComment* Statement? Comment*
 
 	Statement 
     = ReturnStatement
@@ -52,11 +53,13 @@ DVMProgram {
     = "RETURN" Exp
 
 	ConditionStatement
-    = "IF" Exp "THEN" "GOTO" lineNumber Else?
+    = "IF" Exp "THEN" Goto Else?
     
   Else 
-    = "ELSE" "GOTO" lineNumber
+    = "ELSE" Goto
 
+  Goto 
+    = "GOTO" lineNumber
 
 
 	/*
@@ -119,13 +122,7 @@ DVMProgram {
     
   //! Binary AND
   IntBinAndExp
-    = IntBinAndExp "&" IntUnaNotExp -- and
-    | IntUnaNotExp
-    
-  
-  //! Unary NOT
-  IntUnaNotExp
-    = "!" IntCmpExp -- not
+    = IntBinAndExp "&" IntCmpExp -- and
     | IntCmpExp
     
     
@@ -134,7 +131,7 @@ DVMProgram {
     = IntCmpExp intComparator IntBinSftExp -- cmp
     | IntBinSftExp
 
-  intComparator = "<" | ">" | ">=" | "<=" | "==" | "!="
+  intComparator = ">=" | "<=" | "<" | ">" | "==" | "!="
 
   //! Binary Shift
   IntBinSftExp
@@ -165,10 +162,7 @@ DVMProgram {
   IntPriExp
     = "(" IntBinXOrExp ")"  -- intPparenthesis
     | "(" StrCctStrictExp ")"  -- strParenthesis
-    //| "+" IntPriExp   -- intPositive
-    //| "-" IntPriExp   -- neg
-    //? check if it's working as is 
-    //| "!" IntPriExp   -- not
+    | "!" IntPriExp -- not
     | FuncExp
     | ident -- name
     | number

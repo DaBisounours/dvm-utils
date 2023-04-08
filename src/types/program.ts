@@ -30,6 +30,7 @@ export function matchDVMType(s: string) {
 }
 
 export type StatementDefinition =
+  | { type: 'no-op' }
   | { type: 'comment'; comment: string }
   | { type: 'return'; expression: Expression<DVMType> }
   | { type: 'function'; function: FunctionCall }
@@ -37,10 +38,13 @@ export type StatementDefinition =
 
 export type Statement = { line: number } & StatementDefinition
 
-export type Branch =
-  | { type: 'if-then' }
-  | { type: 'if-then-else' }
-
+export type Branch = {
+  condition: Expression<DVMType>,
+  then: number
+} & (
+    | { type: 'if-then' }
+    | { type: 'if-then-else', else: number }
+  )
 
 
 export type FunctionCall = {
@@ -75,4 +79,4 @@ export type Operator<T extends DVMType> = T extends 'string'
     type: 'bitwise';
     bitwise: '&' | '|' | '^' | '!' | '<<' | '>>';
   }
-  | { type: 'calc'; calc: '+' | '-' | '*' | '/' };
+  | { type: 'calc'; calc: '+' | '-' | '*' | '/' | '%' };
