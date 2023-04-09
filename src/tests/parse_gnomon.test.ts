@@ -103,7 +103,166 @@ test('gnomon', () => {
                     { name: "deployheight", type: DVMType.Uint64 },
                 ],
                 statements: [
-                    
+                    {
+                        line: 10,
+                        type: 'branch',
+                        branch: {
+                            type: 'if-then-else',
+                            condition: {
+                                type: 'operation',
+                                operator: { type: 'logical', logical: "==" },
+                                operands: [
+                                    {
+                                        type: 'function', function: {
+                                            name: 'LOAD', args: [
+                                                { type: 'value', value: "owner" }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        type: 'function', function: {
+                                            name: 'SIGNER', args: []
+                                        }
+                                    },
+                                ],
+                                operationType: DVMType.Uint64,
+                            },
+                            then: 20,
+                            else: 100,
+                        }
+                    },
+                    {
+                        line: 20,
+                        type: 'branch',
+                        branch: {
+                            type: 'if-then-else',
+                            condition: {
+                                type: 'operation',
+                                operator: { type: 'logical', logical: "==" },
+                                operands: [
+                                    {
+                                        type: 'function', function: {
+                                            name: 'EXISTS', args: [
+                                                { type: 'name', name: "scid" }
+                                            ]
+                                        }
+                                    },
+                                    { type: 'value', value: 0 },
+                                ],
+                                operationType: DVMType.Uint64,
+                            },
+                            then: 30,
+                            else: 100,
+                        }
+                    },
+                    {
+                        line: 30,
+                        type: 'branch',
+                        branch: {
+                            type: 'if-then-else',
+                            condition: {
+                                type: 'operation',
+                                operator: { type: 'logical', logical: "!=" },
+                                operands: [
+                                    { type: 'name', name: "scowner" },
+                                    { type: 'value', value: "" },
+                                ],
+                                operationType: DVMType.String,
+                            },
+                            then: 40,
+                            else: 100,
+                        }
+                    },
+                    {
+                        line: 40,
+                        type: 'branch',
+                        branch: {
+                            type: 'if-then-else',
+                            condition: {
+                                type: 'operation',
+                                operator: { type: 'logical', logical: "==" },
+                                operands: [
+                                    {
+                                        type: 'function', function: {
+                                            name: 'IS_ADDRESS_VALID', args: [
+                                                {
+                                                    type: 'function', function: {
+                                                        name: 'ADDRESS_RAW',
+                                                        args: [
+                                                            { type: 'name', name: 'scowner' }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    { type: 'value', value: 1 },
+                                ],
+                                operationType: DVMType.Uint64,
+                            },
+                            then: 50,
+                            else: 100,
+                        }
+                    },
+                    {
+                        line: 50,
+                        type: 'function', function: {
+                            name: 'STORE',
+                            args: [
+                                { type: 'name', name: 'scid' },
+                                { type: 'value', value: '' },
+                            ]
+                        }
+                    },
+                    {
+                        line: 60,
+                        type: 'function', function: {
+                            name: 'STORE',
+                            args: [
+                                {
+                                    type: 'operation',
+                                    operator: { type: 'calc', calc: '+' },
+                                    operands: [
+                                        { type: 'name', name: 'scid' },
+                                        { type: 'value', value: 'owner' },
+                                    ],
+                                    operationType: DVMType.String
+                                },
+                                {
+                                    type: 'function', function: {
+                                        name: 'ADDRESS_RAW',
+                                        args: [
+                                            { type: 'name', name: 'scowner' }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        line: 70,
+                        type: 'function', function: {
+                            name: 'STORE',
+                            args: [
+                                {
+                                    type: 'operation',
+                                    operator: { type: 'calc', calc: '+' },
+                                    operands: [
+                                        { type: 'name', name: 'scid' },
+                                        { type: 'value', value: 'height' },
+                                    ],
+                                    operationType: DVMType.String
+                                },
+                                { type: 'name', name: 'deployheight' },
+                                
+                            ]
+                        }
+                    },
+                    {
+                        line: 100,
+                        type: 'return',
+                        expression: { type: 'value', value: 0 },
+                    },
                 ],
             },
 
@@ -178,7 +337,7 @@ Function InitializePrivate() Uint64
 
     100 RETURN 0
 End Function
-`+`
+`+ `
 Function InputSCID(scid String, scowner String, deployheight Uint64) Uint64
     10  IF LOAD("owner") == SIGNER() THEN GOTO 20 ELSE GOTO 100
     20  IF EXISTS(scid) == 0 THEN GOTO 30 ELSE GOTO 100

@@ -75,9 +75,9 @@ DVMProgram {
 
     
   IdentFirstExp 
-    = ident intComparator IntBinXOrExp
-    | ident strComparator StrCctExp
-    | ident "+" StrCctExp
+    = ident intComparator IntBinXOrExp --intCmp
+    | ident strComparator StrCctExp --strCmp
+    | ident "+" StrCctExp --strCct
 
 
   

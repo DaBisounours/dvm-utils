@@ -224,6 +224,53 @@ defaultSemantics.addOperation('eval', {
     },
 
 
+    // case when identifier comes first
+    IdentFirstExp_intCmp(n, c, e) {
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator: {
+                type: 'logical',
+                logical: c.sourceString as "==" | "!=" | ">" | "<" | ">=" | "<="
+            },
+            operands: [
+                { type: 'name', name: n.sourceString },
+                e.eval(),
+            ],
+            operationType: DVMType.Uint64
+        }
+        return expression
+    },
+
+    IdentFirstExp_strCmp(n, c, e) {
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator: {
+                type: 'logical',
+                logical: c.sourceString as "==" | "!="
+            },
+            operands: [
+                { type: 'name', name: n.sourceString },
+                e.eval(),
+            ],
+            operationType: DVMType.String
+        }
+        return expression
+    },
+
+    IdentFirstExp_strCct(n, c, e) {
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator: { type: 'calc', calc: c.sourceString as '+' },
+            operands: [
+                { type: 'name', name: n.sourceString },
+                e.eval(),
+            ],
+            operationType: DVMType.String
+        }
+        return expression
+    },
+
+
     StrCmpExp_cmp(e, c, cct) {
         const strComp: Expression<DVMType> = {
             type: 'operation',
@@ -281,14 +328,13 @@ defaultSemantics.addOperation('eval', {
     },
 
 
-
     IntPriExp_intPparenthesis: parenthesisCalc,
     IntPriExp_strParenthesis: parenthesisCalc,
     IntPriExp_name(n) {
         return { type: 'name', name: n.sourceString }
     },
 
-    
+
 
     number(n) {
         const value: Expression<DVMType.Uint64> = {
