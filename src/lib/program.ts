@@ -12,14 +12,14 @@ defaultSemantics.addOperation('eval', {
 
     Program(p) {
         const program = p.eval()
-        console.warn({ program });
+        //console.warn({ program });
 
         return program
     },
 
     Program_function(p, f) {
         const _function = f.eval()
-        console.warn({ _function });
+        //console.warn({ _function });
 
         for (let childIndex = 0; childIndex < p.numChildren; childIndex++) {
             const child = p.children[childIndex];
@@ -65,7 +65,7 @@ defaultSemantics.addOperation('eval', {
 
     FunctionDeclaration(h, b, _, __) {
         const statements = b.eval()
-        console.warn({ statements });
+        //console.warn({ statements });
 
         return {
             ...h.eval(),
