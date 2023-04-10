@@ -3,6 +3,65 @@ import { test, expect } from '@jest/globals';
 
 import { parse } from '../lib/parse';
 import { DVMType, Program, Statement } from '../types/program';
+import { assign, declare, return_value, val } from '../lib/utils';
+
+
+
+test('dim', () => {
+    const expected: Program = {
+        headers: ['return'],
+        functions: [
+            {
+                name: 'Initialize',
+                return: DVMType.Uint64,
+                args: [],
+                statements: [
+                    return_value(0, 10),
+                    declare('var', DVMType.Uint64, 100),
+                    declare('var2', DVMType.String, 110),
+                    ...declare.multiple(['var3', "var4"], DVMType.Uint64, 120),
+                ],
+            },
+        ],
+    };
+    const code = `// return
+  Function Initialize() Uint64
+    10 RETURN 0
+    100 DIM var Uint64
+    110 DIM var2 String
+    120 DIM var3, var4 Uint64
+  End Function
+      `;
+    expect(parse(code)).toMatchObject(expected)
+});
+
+
+test('let', () => {
+    const expected: Program = {
+        headers: ['return'],
+        functions: [
+            {
+                name: 'Initialize',
+                return: DVMType.Uint64,
+                args: [],
+                statements: [
+                    declare('var', DVMType.Uint64, 100),
+                    assign('var', val(3), 110),
+                    return_value(0, 120),
+                ],
+            },
+        ],
+    };
+    const code = `// return
+  Function Initialize() Uint64
+    
+    100 DIM var Uint64
+    110 LET var = 3
+    120 RETURN 0
+  End Function
+      `;
+    expect(parse(code)).toMatchObject(expected)
+});
 
 
 test('return', () => {
@@ -14,11 +73,7 @@ test('return', () => {
                 return: DVMType.Uint64,
                 args: [],
                 statements: [
-                    {
-                        line: 100,
-                        type: 'return',
-                        expression: { type: 'value', value: 0 },
-                    },
+                    return_value(0, 100)
                 ],
             },
         ],

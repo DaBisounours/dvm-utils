@@ -3,6 +3,7 @@
 import * as ohm from 'ohm-js';
 import { DVMType, Expression, FunctionCall, Statement, StatementDefinition } from '../types/program';
 import p from './grammar/program.ohm';
+import { call, if_then, name, op } from './utils';
 
 export const ProgramGrammar = ohm.grammar(p);
 
@@ -130,6 +131,23 @@ defaultSemantics.addOperation('eval', {
 
     Line(c1, n, c2, s, c3) {
         const line = Number(n.sourceString);
+
+        const commentStatements1 = [c1].flatMap(evalComment).filter(c => c);
+        const commentStatements23 = [c2, c3].flatMap(evalComment).filter(c => c);
+        
+        let statementDefinition: StatementDefinition[]; 
+        if (s.numChildren) {
+            const evaluated = s.children[0].eval();
+            statementDefinition = 'length' in evaluated ? evaluated : [evaluated];
+            
+        } else {
+            statementDefinition = [{ type: 'no-op' }]
+        }
+
+        const statements = statementDefinition.map(s => ({ line, ...s}))
+
+        return [...commentStatements1, ...statements, ...commentStatements23];
+
         function evalComment(c) {
 
             if (c.numChildren) {
@@ -143,19 +161,6 @@ defaultSemantics.addOperation('eval', {
             }
             return null;
         }
-        const commentStatements1 = [c1].flatMap(evalComment).filter(c => c);
-        const commentStatements23 = [c2, c3].flatMap(evalComment).filter(c => c);
-
-        const statementDefinition: StatementDefinition =
-            s.numChildren
-                ? s.children[0].eval()
-                : { type: 'no-op' }
-
-        const statement: Statement = {
-            line,
-            ...statementDefinition,
-        }
-        return [...commentStatements1, statement, ...commentStatements23];
     },
 
     ReturnStatement(_, e) {
@@ -178,26 +183,11 @@ defaultSemantics.addOperation('eval', {
         let statementDefinition//: StatementDefinition;
         if (hasElse) {
             const _else = { else: e.children[0].eval() }
-            statementDefinition = {
-                type: 'branch',
-                branch: {
-                    type: 'if-then-else',
-                    ...then,
-                    ..._else,
-                    condition,
-                }
-
-            }
+            statementDefinition = if_then.else(condition, then.then, _else.else)
         } else {
-            statementDefinition = {
-                type: 'branch',
-                branch: {
-                    type: 'if-then',
-                    ...then,
-                    condition,
-                }
-            }
+            statementDefinition = if_then(condition, then.then)
         }
+        delete statementDefinition.line;
         return statementDefinition;
     },
 
@@ -209,13 +199,39 @@ defaultSemantics.addOperation('eval', {
         return Number(n.sourceString)
     },
 
-    FuncExp(n, _, a, __) {
-        const funcCall: StatementDefinition = {
-            type: 'function', function: {
-                name: n.sourceString,
-                args: a.eval(),
+    DimStatement(_, l, t) {
+        const names = l.asIteration().children.map(c => c.sourceString);
+
+        const statements = names.map(name => {
+            const statementDefinition: StatementDefinition = {
+                type: 'dim',
+                declare: {
+                    name,
+                    type: DVMType[t.sourceString as keyof typeof DVMType],
+                }
             }
+            return statementDefinition;
+        })
+        return statements;
+    },
+
+
+    LetStatement(_, n, __, e) {
+        const statementDefinition: StatementDefinition = {
+            type: 'let',
+            assign: {
+                name: n.sourceString,
+                expression: e.eval(),
+            },
         }
+        return statementDefinition;
+    },
+
+
+
+    FuncExp(n, _, a, __) {
+        const funcCall: StatementDefinition =
+            call(n.sourceString, a.eval()) as StatementDefinition
         return funcCall
     },
 
@@ -258,15 +274,10 @@ defaultSemantics.addOperation('eval', {
     },
 
     IdentFirstExp_strCct(n, c, e) {
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator: { type: 'calc', calc: c.sourceString as '+' },
-            operands: [
-                { type: 'name', name: n.sourceString },
-                e.eval(),
-            ],
-            operationType: DVMType.String
-        }
+        const expression: Expression<DVMType> = op.str.concat(
+            name(n.sourceString),
+            e.eval()
+        );
         return expression
     },
 

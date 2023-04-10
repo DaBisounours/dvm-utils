@@ -5,7 +5,7 @@ import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 
-import { return_value, store, name, val, call, op, if_then } from './utils';
+import { return_value, store, name, val, call, op, if_then } from '../lib/utils';
 
 
 test('gnomon', () => {
@@ -42,7 +42,7 @@ test('gnomon', () => {
                     { name: "deployheight", type: DVMType.Uint64 },
                 ],
                 statements: [
-                    if_then.else(op.str.eq(
+                    if_then.else(op.int.eq( //! Could be string ? How to determine ? Special case ?
                         call('LOAD', [
                             val('owner')]),
                         call('SIGNER', []
@@ -87,7 +87,7 @@ test('gnomon', () => {
                     { name: "scid", type: DVMType.String },
                 ],
                 statements: [
-                    if_then.else(op.str.eq(
+                    if_then.else(op.int.eq( //! Should be str?
                         call('LOAD', [val('owner')]),
                         call('SIGNER', [])
                     ), 20, 100, 10

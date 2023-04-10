@@ -1,8 +1,5 @@
-import { DVMType, Expression, Statement, StatementDefinition } from "../types/program";
+import { DVMType, Dim, Expression, Statement, StatementDefinition } from "../types/program";
 
-export function return_value(value: string | number, line: number): Statement {
-    return { line, type: 'return', expression: val(value) }
-}
 
 export function val(value: string | number): Expression<DVMType> {
     return { type: 'value', value }
@@ -28,6 +25,31 @@ call.statement = function (name: string, args: Expression<DVMType>[], line): Sta
         }
     }
 }
+
+
+
+
+export function declare(_var: string, type: DVMType, line: number): Statement {
+    return {
+        line,
+        type: 'dim',
+        declare: {
+            type,
+            name: _var,
+        },
+    }
+}
+declare.multiple = function (vars: string[], type: DVMType, line: number): Statement[] {
+    return vars.map(v => declare(v, type, line))
+}
+export function assign(name: string, value: Expression<DVMType>, line: number): Statement {
+    return { line, type: 'let', assign: { name, expression: value } }
+}
+
+export function return_value(value: string | number, line: number): Statement {
+    return { line, type: 'return', expression: val(value) }
+}
+
 
 export function store(key: Expression<DVMType>, value: Expression<DVMType>, line: number): Statement {
     return call.statement("STORE", [key, value], line)
@@ -76,11 +98,19 @@ export const op = {
                 operands: [left, right],
                 operationType: DVMType.Uint64,
             }
-        }
+        },
+        ge(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
+            return {
+                type: 'operation',
+                operator: { type: 'logical', logical: ">=" },
+                operands: [left, right],
+                operationType: DVMType.Uint64,
+            }
+        },
     }
 }
 
-export function if_then(condition: Expression<DVMType>, then: number, line: number): Statement {
+export function if_then(condition: Expression<DVMType>, then: number, line?: number): Statement {
     return {
         line,
         type: 'branch',
@@ -91,7 +121,7 @@ export function if_then(condition: Expression<DVMType>, then: number, line: numb
         }
     }
 }
-if_then.else = function (condition: Expression<DVMType>, then: number, _else: number, line: number): Statement {
+if_then.else = function (condition: Expression<DVMType>, then: number, _else: number, line?: number): Statement {
     return {
         line,
         type: 'branch',
@@ -102,4 +132,8 @@ if_then.else = function (condition: Expression<DVMType>, then: number, _else: nu
             else: _else,
         }
     }
+}
+
+export function comment(text: string, line?: number): Statement {
+    return { line, type: 'comment', comment: text }
 }

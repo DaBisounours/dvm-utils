@@ -46,11 +46,19 @@ DVMProgram {
 
 	Statement 
     = ReturnStatement
+    | DimStatement
+    | LetStatement
     | ConditionStatement
     | FuncExp
 	
 	ReturnStatement
     = "RETURN" Exp
+
+	DimStatement 
+    = "DIM" ListOf<ident, ","> type
+    
+  LetStatement 
+    = "LET" ident "=" Exp
 
 	ConditionStatement
     = "IF" Exp "THEN" Goto Else?

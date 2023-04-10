@@ -35,8 +35,20 @@ export type StatementDefinition =
   | { type: 'return'; expression: Expression<DVMType> }
   | { type: 'function'; function: FunctionCall }
   | { type: 'branch'; branch: Branch }
+  | { type: 'dim'; declare: Dim }
+  | { type: 'let'; assign: Let }
 
 export type Statement = { line: number } & StatementDefinition
+
+export type Dim = {
+  type: DVMType;
+  name: string;
+}
+
+export type Let = {
+  name: string;
+  expression: Expression<DVMType>;
+}
 
 export type Branch = {
   condition: Expression<DVMType>,
