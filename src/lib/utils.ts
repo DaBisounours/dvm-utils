@@ -117,7 +117,7 @@ export const op = {
         ne: _op('!=', DVMType.Uint64),
         ge: _op('>=', DVMType.Uint64),
         le: _op('<=', DVMType.Uint64),
-        lo: _op('<', DVMType.Uint64),
+        lt: _op('<', DVMType.Uint64),
         gt: _op('>', DVMType.Uint64),
         add: _op('+', DVMType.Uint64),
         sub: _op('-', DVMType.Uint64),
@@ -132,7 +132,7 @@ export const op = {
         not: _op('!', DVMType.Uint64),
     },
     var: {
-        concat: _op('+', DVMType.unknown),
+        plus: _op('+', DVMType.unknown),
         eq: _op('==', DVMType.unknown),
         ne: _op('!=', DVMType.unknown),
     },

@@ -1,7 +1,7 @@
 import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { Program, DVMType } from '../types/program';
-import { call, name, op, val } from '../lib/utils';
+import { call, if_then, name, op, return_value, store, val } from '../lib/utils';
 
 
 test('experiment #1', () => {
@@ -12,48 +12,61 @@ test('experiment #1', () => {
                 return: DVMType.Uint64,
                 args: [],
                 statements: [
-                    call.statement('test', [
-                        op.var.eq(name('a'), name('a')),
-                        op.int.eq(name('a'), val(1)),
-                        op.int.eq(val(1), name('a')),
-                        op.str.eq(name('a'), val('s')),
-                        op.str.eq(val('s'), name('a')),
-                        op.var.eq(call('f', []), name('a')),
-                        op.var.eq(name('a'), call('f', [])),
-                        op.var.eq(call('f', []), call('g', [])),
-                        op.int.eq(call('f', []), val(1)),
-                        op.int.eq(val(1), call('f', [])),
-                        op.str.eq(call('f', []), val('s')),
-                        op.str.eq(val('s'), call('f', [])),
-                        op.int.sub(name('a'), name('a')),
-                        op.int.sub(call('f', []), name('a')),
-                        op.int.sub(name('a'), call('f', [])),
-                        op.int.sub(name('a'), op.int.sub(call('f', []), val(1))),
-                    ], 10)
-
+                    if_then.else(op.int.eq(
+                        call('EXISTS', [op.str.concat(
+                            name('scid'),
+                            val('owner'))
+                        ]),
+                        val(1)
+                    ), 20, 100, 10
+                    ),
+                    if_then.else(op.var.eq(
+                        call('LOAD', [
+                            op.str.concat(
+                                name('scid'),
+                                val('owner')
+                            ),
+                        ]),
+                        call('SIGNER', [])
+                    ), 30, 100, 20
+                    ),
+                    if_then(op.int.lt(
+                        call('DEROVALUE', []),
+                        val(200)
+                    ), 100, 30
+                    ),
+                    store(val("balance"), op.var.plus(
+                        call("LOAD", [val("balance")]),
+                        call("DEROVALUE", [])
+                    ), 40),
+                    store(name("scid"),
+                        op.str.concat(
+                            name('name'),
+                            op.str.concat(
+                                op.str.concat(
+                                    op.str.concat(
+                                        val(";"),
+                                        name("descr")    
+                                    ),
+                                    val(";")
+                                ),
+                                name("icon")
+                            )
+                        )
+                        , 50),
+                    return_value(0, 100)
                 ],
             },
         ],
     };
     const code = `Function Initialize() Uint64
-    10 test(
-        a == a,
-        a == 1,
-        1 == a,
-        a == "s",
-        "s" == a,
-        f() == a,
-        a == f(),
-        f() == g(),
-        f() == 1,
-        1 == f(),
-        f() == "s",
-        "s" == f(),
-        a - a,
-        f() - a,
-        a - f(),
-        a - (f() - 1)
-    )
+    10  IF EXISTS(scid + "owner") == 1 THEN GOTO 20 ELSE GOTO 100
+    20  IF LOAD(scid + "owner") == SIGNER() THEN GOTO 30 ELSE GOTO 100
+    30  IF DEROVALUE() < 200 THEN GOTO 100
+    40  STORE("balance", LOAD("balance") + DEROVALUE())
+    50  STORE(scid, name + ";" + descr + ";" + icon)
+
+    100 RETURN 0
   End Function`;
     expect(parse(code)).toMatchObject(expected)
 });
