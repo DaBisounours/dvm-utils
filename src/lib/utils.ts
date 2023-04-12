@@ -1,4 +1,4 @@
-import { DVMType, Dim, Expression, Statement, StatementDefinition } from "../types/program";
+import { BinaryOperator, DVMType, Dim, Expression, Statement, StatementDefinition, UnaryOperator } from "../types/program";
 
 
 export function val(value: string | number): Expression<DVMType> {
@@ -55,77 +55,87 @@ export function store(key: Expression<DVMType>, value: Expression<DVMType>, line
     return call.statement("STORE", [key, value], line)
 }
 
+
+function _op(o: UnaryOperator, operationType: DVMType): (right: Expression<DVMType>) => Expression<DVMType>;
+function _op(o: BinaryOperator, operationType: DVMType): (left: Expression<DVMType>, right: Expression<DVMType>) => Expression<DVMType>;
+
+function _op(
+    o: UnaryOperator | BinaryOperator,
+    operationType: DVMType
+): ((right: Expression<DVMType>) => Expression<DVMType>) | ((left: Expression<DVMType>, right: Expression<DVMType>) => Expression<DVMType>) {
+    let operator;
+    switch (o) {
+        case '==':
+        case '!=':
+        case '<=':
+        case '>=':
+        case '<':
+        case '>':
+            operator = { type: 'logical' as const, logical: o };
+            break;
+        case '+':
+        case '-':
+        case '*':
+        case '/':
+        case '%':
+            operator = { type: 'calc' as const, calc: o };
+            break;
+        case '&':
+        case '|':
+        case '^':
+        case '!':
+        case '<<':
+        case '>>':
+            operator = { type: 'bitwise' as const, bitwise: o };
+
+    }
+    if (o == '!') {
+        return (right) => ({
+            type: 'operation' as const,
+            operator,
+            operands: [right],
+            operationType,
+        })
+    } else {
+        return (left, right) => ({
+            type: 'operation' as const,
+            operator,
+            operands: [left, right],
+            operationType,
+        })
+    }
+}
+
 export const op = {
     str: {
-        concat(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'calc', calc: '+' },
-                operands: [left, right],
-                operationType: DVMType.String
-            }
-        },
-        eq(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'logical', logical: "==" },
-                operands: [left, right],
-                operationType: DVMType.String,
-            }
-        },
-        ne(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'logical', logical: "!=" },
-                operands: [left, right],
-                operationType: DVMType.String,
-            }
-        },
+        concat: _op('+', DVMType.String),
+        eq: _op('==', DVMType.String),
+        ne: _op('!=', DVMType.String),
     },
     int: {
-        eq(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'logical', logical: "==" },
-                operands: [left, right],
-                operationType: DVMType.Uint64,
-            }
-        },
-        ne(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'logical', logical: "!=" },
-                operands: [left, right],
-                operationType: DVMType.Uint64,
-            }
-        },
-        ge(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'logical', logical: ">=" },
-                operands: [left, right],
-                operationType: DVMType.Uint64,
-            }
-        },
+        eq: _op('==', DVMType.Uint64),
+        ne: _op('!=', DVMType.Uint64),
+        ge: _op('>=', DVMType.Uint64),
+        le: _op('<=', DVMType.Uint64),
+        lo: _op('<', DVMType.Uint64),
+        gt: _op('>', DVMType.Uint64),
+        add: _op('+', DVMType.Uint64),
+        sub: _op('-', DVMType.Uint64),
+        mul: _op('*', DVMType.Uint64),
+        div: _op('/', DVMType.Uint64),
+        mod: _op('%', DVMType.Uint64),
+        xor: _op('^', DVMType.Uint64),
+        and: _op('&', DVMType.Uint64),
+        or: _op('|', DVMType.Uint64),
+        lsb: _op('<<', DVMType.Uint64),
+        rsb: _op('>>', DVMType.Uint64),
+        not: _op('!', DVMType.Uint64),
     },
     var: {
-        eq(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'logical', logical: "==" },
-                operands: [left, right],
-                operationType: DVMType.unknown,
-            }
-        },
-        ne(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
-            return {
-                type: 'operation',
-                operator: { type: 'logical', logical: "!=" },
-                operands: [left, right],
-                operationType: DVMType.unknown,
-            }
-        },
-    }
+        concat: _op('+', DVMType.unknown),
+        eq: _op('==', DVMType.unknown),
+        ne: _op('!=', DVMType.unknown),
+    },
 }
 
 export function if_then(condition: Expression<DVMType>, then: number, line?: number): Statement {

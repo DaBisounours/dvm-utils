@@ -65,6 +65,63 @@ export type FunctionCall = {
   args: Expression<DVMType>[];
 };
 
+export type BinaryOperator =
+  | LogicalOperator
+  | CalcOperator
+  | BitwiseBinaryOperator;
+
+export type BitwiseOperator =
+  | BitwiseBinaryOperator
+  | UnaryOperator
+
+export type BitwiseUnaryOperator = '!'
+
+export type BitwiseBinaryOperator =
+  | '&'
+  | '|'
+  | '^'
+  | '<<'
+  | '>>'
+
+export type UnaryOperator = BitwiseUnaryOperator;
+
+export type LogicalOperator =
+  | LogicalCommonOperator
+  | LogicalIntOperator
+
+export type LogicalCommonOperator =
+  | '=='
+  | '!='
+
+export type LogicalIntOperator =
+  | '<='
+  | '>='
+  | '<'
+  | '>'
+
+export type CalcCommonOperator = '+'
+
+export type CalcOperator =
+  | CalcCommonOperator
+  | CalcIntOperator
+
+export type CalcIntOperator =
+  | '-'
+  | '*'
+  | '/'
+  | '%'
+
+export type IntOperator =
+  | LogicalCommonOperator
+  | LogicalIntOperator
+  | CalcCommonOperator
+  | CalcIntOperator
+
+export type StringOperator =
+  | LogicalCommonOperator
+  | CalcCommonOperator
+
+
 export type Expression<T extends DVMType> =
   | {
     type: 'value';
@@ -81,15 +138,15 @@ export type Expression<T extends DVMType> =
 
 export type Operator<T extends DVMType> = T extends 'string'
   ?
-  | { type: 'logical'; logical: '==' | '!=' }
-  | { type: 'calc'; calc: '+' }
+  | { type: 'logical'; logical: LogicalCommonOperator }
+  | { type: 'calc'; calc: CalcCommonOperator }
   : // T extends 'number'
   | {
     type: 'logical';
-    logical: '==' | '!=' | '>' | '<' | '>=' | '<=';
+    logical: LogicalCommonOperator | LogicalIntOperator;
   }
   | {
     type: 'bitwise';
-    bitwise: '&' | '|' | '^' | '!' | '<<' | '>>';
+    bitwise: BitwiseOperator;
   }
-  | { type: 'calc'; calc: '+' | '-' | '*' | '/' | '%' };
+  | { type: 'calc'; calc: CalcCommonOperator | CalcIntOperator };
