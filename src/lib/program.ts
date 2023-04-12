@@ -134,17 +134,17 @@ defaultSemantics.addOperation('eval', {
 
         const commentStatements1 = [c1].flatMap(evalComment).filter(c => c);
         const commentStatements23 = [c2, c3].flatMap(evalComment).filter(c => c);
-        
-        let statementDefinition: StatementDefinition[]; 
+
+        let statementDefinition: StatementDefinition[];
         if (s.numChildren) {
             const evaluated = s.children[0].eval();
             statementDefinition = 'length' in evaluated ? evaluated : [evaluated];
-            
+
         } else {
             statementDefinition = [{ type: 'no-op' }]
         }
 
-        const statements = statementDefinition.map(s => ({ line, ...s}))
+        const statements = statementDefinition.map(s => ({ line, ...s }))
 
         return [...commentStatements1, ...statements, ...commentStatements23];
 
@@ -239,8 +239,29 @@ defaultSemantics.addOperation('eval', {
         return l.asIteration().children.map(a => (a.eval()));
     },
 
+    // cases when identifier comes first
 
-    // case when identifier comes first
+    IdentFirstExp_unknown(n, c, e) {
+        const operator = c.sourceString == '+' ? {
+            type: 'calc' as const,
+            calc: '+' as const,
+        } : {
+            type: 'logical' as const,
+            logical: c.sourceString as "==" | "!=" | ">" | "<" | ">=" | "<="
+        }
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator,
+            operands: [
+                { type: 'name', name: n.sourceString },
+                { type: 'name', name: e.sourceString },
+            ],
+            operationType: DVMType.unknown
+        }
+        return expression
+    },
+
+
     IdentFirstExp_intCmp(n, c, e) {
         const expression: Expression<DVMType> = {
             type: 'operation',
@@ -281,6 +302,88 @@ defaultSemantics.addOperation('eval', {
         return expression
     },
 
+    IdentFirstExp_unknownFunc(n, o, f) {
+        const operator = o.sourceString == '+' ? {
+            type: 'calc' as const,
+            calc: '+' as const,
+        } : {
+            type: 'logical' as const,
+            logical: o.sourceString as "==" | "!="
+        }
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator,
+            operands: [{ type: 'name', name: n.sourceString }, f.eval()],
+            operationType: DVMType.unknown
+        }
+        return expression
+    },
+
+    FuncFirstExp_unknown(f1, o, f2) {
+        const operator = o.sourceString == '+' ? {
+            type: 'calc' as const,
+            calc: '+' as const,
+        } : {
+            type: 'logical' as const,
+            logical: o.sourceString as "==" | "!="
+        }
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator,
+            operands: [f1.eval(), f2.eval()],
+            operationType: DVMType.unknown
+        }
+        return expression
+    },
+
+    FuncFirstExp_unknownIdent(f, o, n) {
+        const operator = o.sourceString == '+' ? {
+            type: 'calc' as const,
+            calc: '+' as const,
+        } : {
+            type: 'logical' as const,
+            logical: o.sourceString as "==" | "!="
+        }
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator,
+            operands: [f.eval(), { type: 'name', name: n.sourceString }],
+            operationType: DVMType.unknown
+        }
+        return expression
+    },
+
+    FuncFirstExp_strCmp(f, c, e) {
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator: {
+                type: 'logical',
+                logical: c.sourceString as "==" | "!="
+            },
+            operands: [
+                f.eval(),
+                e.eval(),
+            ],
+            operationType: DVMType.String
+        }
+        return expression
+    },
+
+    FuncFirstExp_intCmp(f, c, e) {
+        const expression: Expression<DVMType> = {
+            type: 'operation',
+            operator: {
+                type: 'logical',
+                logical: c.sourceString as "==" | "!=" | ">" | "<" | ">=" | "<="
+            },
+            operands: [
+                f.eval(),
+                e.eval(),
+            ],
+            operationType: DVMType.Uint64
+        }
+        return expression
+    },
 
     StrCmpExp_cmp(e, c, cct) {
         const strComp: Expression<DVMType> = {
@@ -297,6 +400,11 @@ defaultSemantics.addOperation('eval', {
 
     StrCctExp_concat: strCalc,
     StrCctStrictExp_concat: strCalc,
+
+    StrPriExp_name(n) {
+        return { type: 'name', name: n.sourceString }
+    },
+
 
     IntCmpExp_cmp(e, c, bs) {
         const intComp: Expression<DVMType> = {

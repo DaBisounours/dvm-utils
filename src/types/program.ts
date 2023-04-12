@@ -19,6 +19,7 @@ export type Argument = {
 export enum DVMType {
   String = 'string',
   Uint64 = 'number',
+  unknown = 'unknown',
 }
 
 export function matchDVMType(s: string) {

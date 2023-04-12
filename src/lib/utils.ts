@@ -107,6 +107,24 @@ export const op = {
                 operationType: DVMType.Uint64,
             }
         },
+    },
+    var: {
+        eq(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
+            return {
+                type: 'operation',
+                operator: { type: 'logical', logical: "==" },
+                operands: [left, right],
+                operationType: DVMType.unknown,
+            }
+        },
+        ne(left: Expression<DVMType>, right: Expression<DVMType>): Expression<DVMType> {
+            return {
+                type: 'operation',
+                operator: { type: 'logical', logical: "!=" },
+                operands: [left, right],
+                operationType: DVMType.unknown,
+            }
+        },
     }
 }
 

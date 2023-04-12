@@ -6,10 +6,10 @@ import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 
-import { return_value, store, name, val, call, op, if_then, comment } from '../lib/utils';
+import { return_value, store, name, val, call, op, if_then, comment, declare } from '../lib/utils';
 
 
-test('gnomon', () => {
+test('nameservice', () => {
     const expected: Program = {
         headers: [`Name Service SMART CONTRACT in DVM-BASIC.  
     Allows a user to register names which could be looked by wallets for easy to use name while transfer`,
@@ -23,6 +23,8 @@ test('gnomon', () => {
                 return: DVMType.Uint64,
                 args: [],
                 statements: [
+                    declare('test', DVMType.String, 5),
+                    declare('testInt', DVMType.Uint64, 6),
                     return_value(0, 10),
                 ],
             },
@@ -57,7 +59,7 @@ test('gnomon', () => {
                         val(6)
                     ), 40, 20
                     ),
-                    if_then(op.int.ne( // ! Same thing, should be str
+                    if_then(op.var.ne( 
                         call('SIGNER', []),
                         call('address_raw', [
                             val('dero1qykyta6ntpd27nl0yq4xtzaf4ls6p5e9pqu0k2x4x3pqq5xavjsdxqgny8270')
@@ -77,6 +79,8 @@ test('gnomon', () => {
     
     // This function is used to initialize parameters during install time
      Function Initialize() Uint64
+     5   DIM test String
+     6   DIM testInt Uint64
      10  RETURN 0 
      End Function 
      ` + `

@@ -42,7 +42,7 @@ test('gnomon', () => {
                     { name: "deployheight", type: DVMType.Uint64 },
                 ],
                 statements: [
-                    if_then.else(op.int.eq( //! Could be string ? How to determine ? Special case ?
+                    if_then.else(op.var.eq(
                         call('LOAD', [
                             val('owner')]),
                         call('SIGNER', []
@@ -87,7 +87,7 @@ test('gnomon', () => {
                     { name: "scid", type: DVMType.String },
                 ],
                 statements: [
-                    if_then.else(op.int.eq( //! Should be str?
+                    if_then.else(op.var.eq( 
                         call('LOAD', [val('owner')]),
                         call('SIGNER', [])
                     ), 20, 100, 10
