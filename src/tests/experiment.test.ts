@@ -1,7 +1,7 @@
 import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { Program, DVMType } from '../types/program';
-import { call, if_then, name, op, return_value, store, val } from '../lib/utils';
+import { call, if_then, name, op, return_value, store, val } from '../lib/build';
 
 
 test('experiment #1', () => {
@@ -37,7 +37,7 @@ test('experiment #1', () => {
                     ),
                     store(val("balance"), op.var.plus(
                         call("LOAD", [val("balance")]),
-                        call("DEROVALUE", [])
+                        call("DEROVALUE")
                     ), 40),
                     store(name("scid"),
                         op.str.concat(

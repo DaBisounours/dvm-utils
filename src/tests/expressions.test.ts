@@ -1,7 +1,7 @@
 import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { Program, DVMType } from '../types/program';
-import { call, name, op, val } from '../lib/utils';
+import { call, name, op, val } from '../lib/build';
 
 
 test('expressions', () => {

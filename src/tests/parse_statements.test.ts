@@ -3,7 +3,7 @@ import { test, expect } from '@jest/globals';
 
 import { parse } from '../lib/parse';
 import { DVMType, Program, Statement } from '../types/program';
-import { assign, declare, return_value, val } from '../lib/utils';
+import { assign, declare, return_value, val } from '../lib/build';
 
 
 

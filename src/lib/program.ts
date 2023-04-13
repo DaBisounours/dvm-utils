@@ -3,7 +3,7 @@
 import * as ohm from 'ohm-js';
 import { DVMType, Expression, FunctionCall, Statement, StatementDefinition } from '../types/program';
 import p from './grammar/program.ohm';
-import { call, if_then, name, op } from './utils';
+import { call, if_then, name, op } from './build';
 
 export const ProgramGrammar = ohm.grammar(p);
 

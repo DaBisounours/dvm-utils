@@ -1,3 +1,4 @@
+import { DVMFunctions } from "../types/dvmfunctions";
 import { DVMType, Dim, Program } from "../types/program"
 import { ProgramGrammar, defaultSemantics } from "./program"
 
@@ -32,6 +33,8 @@ export const parse = (code: string): Program => {
 
   let evaluated: Program = defaultSemantics(match).eval()
   const context = getContext(evaluated);
+  console.log(context);
+
   // TODO catch matching errors
   // TODO nameCheck
   nameCheck(evaluated, context);
@@ -46,35 +49,54 @@ function nameCheck(evaluated: Program, context: Context) {
 
 
 function initContext(): Context {
-  return {
-    names: {
-
+  let ctx: Context = {
+    names: {}
+  };
+  Object.entries(DVMFunctions).map(([n, f]) => {
+    if ('return' in f) {
+      const flat: NameInfo = { declaredType: f.return, type: 'dvm-function' }
+      ctx.names[n] = flat;
     }
-  } // TODO add dvm-functions
+  })
+  return ctx;
 }
 
 function getContext(evaluated: Program): Context {
-  const functionNames = evaluated.functions.map(f => ({ name: f.name, type: f.return }));
-  const args = evaluated.functions.flatMap(f => f.args)
-  const dims = evaluated.functions.flatMap(f => f.statements.filter(s => s.type == 'dim').map(dim => dim.type == 'dim' ? { name: dim.declare.name, type: dim.declare.type } : {} as Dim))
+  const functionNames: FlatNameInfo[] = evaluated.functions.map(f => ({ name: f.name, declaredType: f.return, type: 'function' }));
+  const args: FlatNameInfo[] = evaluated.functions
+    .flatMap(f => f.args.map(a => ({ ...a, source: f.name })))
+    .map(a => ({ name: a.name, declaredType: a.type, type: 'argument', source: a.source }))
+  const dims: FlatNameInfo[] = evaluated.functions
+    .flatMap(f => f.statements.map(s => ({ ...s, source: f.name }))
+      .filter(s => s.type == 'dim')
+      .map(s => s.type === "dim" ? s : null)
+      .map(dim => ({ name: dim.declare.name, declaredType: dim.declare.type, type: 'variable', source: dim.source })))
   const namesArray = [...functionNames, ...args, ...dims]
   const names = {}
-  namesArray.forEach(name => {
-    names[name.name] = name.type
+  namesArray.forEach((n) => {
+    names[n.name] =
+      n.type == 'variable' || n.type == 'argument'
+        ? { type: n.type, declaredType: n.declaredType, source: n.source }
+        : { type: n.type, declaredType: n.declaredType }
   })
   const context = initContext();
   context.names = { ...context.names, ...names }
   return context;
 }
 
+type FlatNameInfo = NameInfo & { name: string }
 
+type NameInfo = {
+  type: 'variable' | 'argument',
+  declaredType: DVMType,
+  source: string,
+} | {
+  type: 'function' | 'dvm-function',
+  declaredType: DVMType,
+}
 type Context = {
   names: {
-    [name: string]: {
-      type: 'variable' | 'argument' | 'function' | 'dvm-function',
-      declaredType: DVMType,
-      line?: number,
-    }
+    [name: string]: NameInfo
   };
 
 }

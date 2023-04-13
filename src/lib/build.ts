@@ -8,11 +8,11 @@ export function name(n: string): Expression<DVMType> {
     return { type: 'name', name: n }
 }
 
-export function call(name: string, args: Expression<DVMType>[]): Expression<DVMType> {
+export function call(name: string, args?: Expression<DVMType>[]): Expression<DVMType> {
     return {
         type: 'function', function: {
             name,
-            args
+            args: args === undefined ? [] : args
         }
     }
 }

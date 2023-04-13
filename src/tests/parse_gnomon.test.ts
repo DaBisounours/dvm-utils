@@ -5,7 +5,7 @@ import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 
-import { return_value, store, name, val, call, op, if_then } from '../lib/utils';
+import { return_value, store, name, val, call, op, if_then } from '../lib/build';
 
 
 test('gnomon', () => {
@@ -140,7 +140,7 @@ test('gnomon', () => {
                     ),
                     store(val("balance"), op.var.plus(
                         call("LOAD", [val("balance")]),
-                        call("DEROVALUE", [])
+                        call("DEROVALUE")
                     ), 40),
                     store(name("scid"),
                         op.str.concat(
@@ -169,7 +169,7 @@ test('gnomon', () => {
                 statements: [
                     if_then.else(op.var.eq(
                         call('LOAD', [val("owner")]),
-                        call("SIGNER", [])
+                        call("SIGNER")
                     ), 20, 100, 10
                     ),
                     if_then.else(op.int.gt(
@@ -178,7 +178,7 @@ test('gnomon', () => {
                     ), 30, 100, 20
                     ),
                     call.statement("SEND_DERO_TO_ADDRESS", [
-                        call("SIGNER", []),
+                        call("SIGNER"),
                         call("LOAD", [val("balance")])
                     ], 30),
                     store(val("balance"), val(0), 40),
@@ -195,7 +195,7 @@ test('gnomon', () => {
                 statements: [
                     if_then.else(op.var.eq(
                         call('LOAD', [val("owner")]),
-                        call("SIGNER", [])
+                        call("SIGNER")
                     ), 20, 100, 10
                     ),
                     if_then.else(op.str.ne(
@@ -218,7 +218,7 @@ test('gnomon', () => {
                 statements: [
                     if_then.else(op.var.eq(
                         call('LOAD', [val("owner")]),
-                        call("SIGNER", [])
+                        call("SIGNER")
                     ), 20, 100, 10
                     ),
                     if_then.else(op.str.ne(
