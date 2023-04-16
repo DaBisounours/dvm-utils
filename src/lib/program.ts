@@ -1,7 +1,7 @@
 
 //@ts-ignore
 import * as ohm from 'ohm-js';
-import { DVMType, Expression, FunctionCall, Statement, StatementDefinition } from '../types/program';
+import { DVMType, Expression, StatementDefinition } from '../types/program';
 import p from './grammar/program.ohm';
 import { call, if_then, name, op } from './build';
 
@@ -14,7 +14,7 @@ defaultSemantics.addOperation('eval', {
     Program(p) {
         const program = p.eval()
         //console.warn({ program });
-
+        //console.dir({ program }, { depth: null });
         return program
     },
 
@@ -191,6 +191,14 @@ defaultSemantics.addOperation('eval', {
         return statementDefinition;
     },
 
+    ExpStatement(e) {
+        const funcCall: StatementDefinition = {
+            type: 'expression',
+            expression: e.eval(),
+        }
+        return funcCall
+    },
+
     Else(_, g) {
         return g.eval();
     },
@@ -230,8 +238,7 @@ defaultSemantics.addOperation('eval', {
 
 
     FuncExp(n, _, a, __) {
-        const funcCall: StatementDefinition =
-            call(n.sourceString, a.eval()) as StatementDefinition
+        const funcCall: Expression<DVMType> = call(n.sourceString, a.eval())
         return funcCall
     },
 

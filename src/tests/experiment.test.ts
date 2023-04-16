@@ -58,7 +58,10 @@ test('experiment #1', () => {
                 ],
             },
         ],
+        headers: [],
     };
+    //console.dir({expected}, {depth: null});
+    
     const code = `Function Initialize() Uint64
     10  IF EXISTS(scid + "owner") == 1 THEN GOTO 20 ELSE GOTO 100
     20  IF LOAD(scid + "owner") == SIGNER() THEN GOTO 30 ELSE GOTO 100

@@ -34,7 +34,7 @@ export type StatementDefinition =
   | { type: 'no-op' }
   | { type: 'comment'; comment: string }
   | { type: 'return'; expression: Expression<DVMType> }
-  | { type: 'function'; function: FunctionCall }
+  | { type: 'expression'; expression: Expression<DVMType> }
   | { type: 'branch'; branch: Branch }
   | { type: 'dim'; declare: Dim }
   | { type: 'let'; assign: Let }

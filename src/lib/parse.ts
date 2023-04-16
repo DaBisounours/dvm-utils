@@ -1,5 +1,5 @@
 import { DVMFunctions } from "../types/dvmfunctions";
-import { DVMType, Dim, Program } from "../types/program"
+import { DVMType, Dim, Expression, Program } from "../types/program"
 import { ProgramGrammar, defaultSemantics } from "./program"
 
 
@@ -43,8 +43,48 @@ export const parse = (code: string): Program => {
   return evaluated;
 }
 
+function find_rec(
+  e: Expression<DVMType>, actions: {
+    target: "function" | "name" | "value" | "operation",
+    callback: (expression: Expression<DVMType>) => Expression<DVMType>,
+  }[]
+): Expression<DVMType> {
+
+  console.log({ e }, e.type);
+
+  for (let index = 0; index < actions.length; index++) {
+    const action = actions[index];
+    if (e.type == action.target) {
+      e = action.callback(e);
+    }
+  }
+
+  return e;
+}
+
 function nameCheck(evaluated: Program, context: Context) {
 
+  const actions = [{
+    target: "function" as const,
+    callback: (e: Expression<DVMType>) => {
+      console.log(e, 'from callback');
+      
+      return e;
+    }
+  }]
+
+  evaluated.functions
+    .map(f => {
+      console.warn(f.name);
+
+      return f.statements
+        .map(s => {
+          if (s.type === 'expression') {
+            s.expression = find_rec(s.expression, actions);  
+          }
+          return s;
+        })
+    })
 }
 
 

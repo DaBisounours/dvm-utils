@@ -10,7 +10,8 @@ export function name(n: string): Expression<DVMType> {
 
 export function call(name: string, args?: Expression<DVMType>[]): Expression<DVMType> {
     return {
-        type: 'function', function: {
+        type: 'function', 
+        function: {
             name,
             args: args === undefined ? [] : args
         }
@@ -19,10 +20,7 @@ export function call(name: string, args?: Expression<DVMType>[]): Expression<DVM
 call.statement = function (name: string, args: Expression<DVMType>[], line): Statement {
     return {
         line,
-        type: 'function', function: {
-            name,
-            args
-        }
+        type: 'expression', expression: call(name, args)
     }
 }
 
@@ -164,4 +162,8 @@ if_then.else = function (condition: Expression<DVMType>, then: number, _else: nu
 
 export function comment(text: string, line?: number): Statement {
     return { line, type: 'comment', comment: text }
+}
+
+export function noop(line: number): Statement {
+    return { line, type: 'no-op' }
 }

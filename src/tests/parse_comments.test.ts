@@ -3,6 +3,7 @@ import { test, expect } from '@jest/globals';
 
 import { parse } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
+import { call, comment, noop } from '../lib/build';
 
 
 test('inline comment', () => {
@@ -14,13 +15,11 @@ test('inline comment', () => {
         return: DVMType.Uint64,
         args: [],
         statements: [
-          { line: 10, type: 'no-op' },
-          { line: 10, type: 'comment', comment: 'Comment // whatever /* Whatever */' },
-          { line: 11, type: 'function', function: {
-            name: 'someCodeHere', args: []
-          } },
-          { line: 11, type: 'comment', comment: 'Whatever //' },
-          { line: 11, type: 'comment', comment: 'Whatever*' },
+          noop(10),
+          comment('Comment // whatever /* Whatever */', 10),
+          call.statement("someCodeHere", [], 11),
+          comment('Whatever //', 11),
+          comment('Whatever*', 11),
         ],
       },
     ],
@@ -44,13 +43,13 @@ test('multiline comment', () => {
         return: DVMType.Uint64,
         args: [],
         statements: [
-          { line: 0, type: 'comment', comment: 'multi\nwithout line number' },
-          { line: 10, type: 'no-op' },
-          { line: 10, type: 'comment', comment: 'Comment // whatever /* Whatever */' },
-          { line: 10, type: 'comment', comment: 'multi\n  line' },
-          { line: 11, type: 'no-op' },
-          { line: 11, type: 'comment', comment: 'Whatever //' },
-          { line: 11, type: 'comment', comment: 'Whatever*' },
+          comment('multi\nwithout line number', 0),
+          noop(10),
+          comment('Comment // whatever /* Whatever */', 10),
+          comment('multi\n  line', 10),
+          noop(11),
+          comment('Whatever //', 11),
+          comment('Whatever*', 11),
         ],
       },
     ],
