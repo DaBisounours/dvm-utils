@@ -33,7 +33,7 @@ export const parse = (code: string): Program => {
 
   let evaluated: Program = defaultSemantics(match).eval()
   const context = getContext(evaluated);
-  console.log(context);
+  //console.log(context);
 
   // TODO catch matching errors
   // TODO nameCheck
@@ -50,7 +50,8 @@ function find_rec(
   }[]
 ): Expression<DVMType> {
 
-  console.log({ e }, e.type);
+  //console.log({ e }, e.type);
+  // TODO continue
 
   for (let index = 0; index < actions.length; index++) {
     const action = actions[index];
@@ -67,7 +68,7 @@ function nameCheck(evaluated: Program, context: Context) {
   const actions = [{
     target: "function" as const,
     callback: (e: Expression<DVMType>) => {
-      console.log(e, 'from callback');
+      //console.log(e, 'from callback'); //  TODO continue
       
       return e;
     }
@@ -75,8 +76,8 @@ function nameCheck(evaluated: Program, context: Context) {
 
   evaluated.functions
     .map(f => {
-      console.warn(f.name);
-
+      //console.warn(f.name);
+// TODO continue
       return f.statements
         .map(s => {
           if (s.type === 'expression') {

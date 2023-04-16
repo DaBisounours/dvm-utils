@@ -4,10 +4,12 @@ export type Program = {
   functions: FunctionType[];
 };
 
-export type FunctionType = {
+export type FunctionHeader = {
   name: string;
   return: DVMType;
   args: Argument[];
+}
+export type FunctionType = FunctionHeader & {
   statements: Statement[];
 };
 

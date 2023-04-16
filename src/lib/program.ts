@@ -1,7 +1,7 @@
 
 //@ts-ignore
 import * as ohm from 'ohm-js';
-import { DVMType, Expression, StatementDefinition } from '../types/program';
+import { Argument, DVMType, Expression, FunctionHeader, FunctionType, Statement, StatementDefinition } from '../types/program';
 import p from './grammar/program.ohm';
 import { call, if_then, name, op } from './build';
 
@@ -12,6 +12,8 @@ export const defaultSemantics = ProgramGrammar.createSemantics();
 defaultSemantics.addOperation('eval', {
 
     Program(p) {
+        // Evaluate program and return
+
         const program = p.eval()
         //console.warn({ program });
         //console.dir({ program }, { depth: null });
@@ -19,133 +21,127 @@ defaultSemantics.addOperation('eval', {
     },
 
     Program_function(p, f) {
+        // Evaluate parsed function declaration f
         const _function = f.eval()
-        //console.warn({ _function });
 
-        for (let childIndex = 0; childIndex < p.numChildren; childIndex++) {
-            const child = p.children[childIndex];
+        // Evaluate program if any created yet
+        if (p.numChildren > 0) {
+            const child = p.children[0];
             let program = child.eval();
-
-
-            if (program) {
-                program.functions.push(_function);
-            } else {
-                program = { headers: [], functions: [_function] }
-            }
+            program.functions.push(_function);
             return program;
         }
+
+        // or return initial one
         return { headers: [], functions: [_function] }
     },
 
     Program_comment(p, c) {
+        // Evaluate parsed comment c
         const comment = c.eval().comment
-        for (let childIndex = 0; childIndex < p.numChildren; childIndex++) {
-            const child = p.children[childIndex];
+
+        // Evaluate program if any created yet
+        if (p.numChildren > 0) {
+            const child = p.children[0];
             let program = child.eval();
-
-
-            if (program) {
-                program.headers.push(comment);
-            } else {
-                program = { headers: [comment], functions: [] }
-            }
+            program.headers.push(comment);
             return program;
         }
+
+        // or return initial one
         return { headers: [comment], functions: [] }
     },
-    singleLineComment(_, c) {
 
-        return { type: 'comment', comment: c.sourceString.trim() }
-    }, // TODO? Ignored for now
+    singleLineComment: (_, c): StatementDefinition => (
+        { type: 'comment', comment: c.sourceString.trim() }
+    ),
 
-    multilineComment(_, c, ___) {
+    multilineComment: (_, c, ___): StatementDefinition => (
+        { type: 'comment', comment: c.sourceString.trim() }
+    ),
 
-        return { type: 'comment', comment: c.sourceString.trim() }
-    }, // TODO? Ignored for now
-
-
-    FunctionDeclaration(h, b, _, __) {
+    FunctionDeclaration(h, b, _, __): FunctionType {
         const statements = b.eval()
-        //console.warn({ statements });
-
         return {
             ...h.eval(),
             statements
         }
     },
 
-    FunctionHeader(_, n, __, a, ___, t) {
-        return {
-            name: n.eval(),
-            args: a.eval(),
-            return: DVMType[t.sourceString as keyof typeof DVMType]
-        }
-    },
+    FunctionHeader: (_, n, __, a, ___, t): FunctionHeader => ({
+        name: n.eval(),
+        args: a.eval(),
+        return: DVMType[t.sourceString as keyof typeof DVMType]
+    }),
 
-    FunctionName(ident) {
-        return ident.sourceString;
-    },
+    FunctionName: (ident) => ident.sourceString,
 
-    FunctionArgs(l) {
-        return l.asIteration().children.map(child => child.eval())
-    },
-    argumentDefinition(n, _, t) {
-        return {
-            name: n.sourceString,
-            type: DVMType[t.sourceString as keyof typeof DVMType]
-        }
-    },
+    FunctionArgs: (l): Argument[] => l
+        .asIteration()
+        .children
+        .map(child => child.eval()),
 
-    FunctionBody(l_c) {
+    argumentDefinition: (n, _, t): Argument => ({
+        name: n.sourceString,
+        type: DVMType[t.sourceString as keyof typeof DVMType]
+    }),
+
+    FunctionBody(l_c): Statement[] {
         let lastLine = 0;
-        const body = l_c.children.flatMap(child => {
+        const body: Statement[] = l_c.children.flatMap(child => {
 
             let bodyElement = child.eval()
-            //console.warn({ bodyElement });
 
+            // Evaluated element might produce multiple statements
             if (bodyElement.length) {
                 bodyElement = bodyElement.map(e => {
                     if (e.line === undefined) {
                         return { ...e, line: lastLine }
                     } else {
+                        // Update last line
                         lastLine = e.line
                         return e;
                     }
                 });
             }
+
+            // Evaluated element already is already a statement
             if (bodyElement.line !== undefined) {
+                // Update last line
                 lastLine = bodyElement.line;
             }
 
+            // Evaluated element is a statement definition / expression only
             if (bodyElement.type !== undefined) {
-
                 return { line: lastLine, ...bodyElement };
             }
 
             // last line by default, else 0 if no line has been declared
-            return bodyElement.map(e => ({ line: lastLine, ...e }))
+            return bodyElement.map(e => ({ line: lastLine, ...e }));
         })
         return body
     },
 
 
-    Line(c1, n, c2, s, c3) {
+    Line(c1, n, c2, s, c3): StatementDefinition[] {
         const line = Number(n.sourceString);
 
+        // Line might have comments in between line elements // TODO redefine "spaces" to embed comments ? Will make parsing a line simpler
         const commentStatements1 = [c1].flatMap(evalComment).filter(c => c);
         const commentStatements23 = [c2, c3].flatMap(evalComment).filter(c => c);
 
-        let statementDefinition: StatementDefinition[];
+        let statementDefinitions: StatementDefinition[];
         if (s.numChildren) {
             const evaluated = s.children[0].eval();
-            statementDefinition = 'length' in evaluated ? evaluated : [evaluated];
-
+            statementDefinitions = 'length' in evaluated ? evaluated : [evaluated];
         } else {
-            statementDefinition = [{ type: 'no-op' }]
+            // Comments only
+            statementDefinitions = [{ type: 'no-op' }]
         }
 
-        const statements = statementDefinition.map(s => ({ line, ...s }))
-
+        // Build statement list
+        const statements = statementDefinitions.map(s => ({ line, ...s }))
+        // Return list with comments in order
         return [...commentStatements1, ...statements, ...commentStatements23];
 
         function evalComment(c) {
@@ -163,17 +159,12 @@ defaultSemantics.addOperation('eval', {
         }
     },
 
-    ReturnStatement(_, e) {
-        const statementDefinition: StatementDefinition
-            = {
-            type: 'return',
-            expression: e.eval()
+    ReturnStatement: (_, e): StatementDefinition => ({
+        type: 'return',
+        expression: e.eval()
+    }),
 
-        }
-        return statementDefinition;
-    },
-
-    ConditionStatement(_, ce, __, g, e) {
+    ConditionStatement(_, ce, __, g, e): StatementDefinition {
         const condition = ce.eval()
 
         const then = { then: g.eval() }
@@ -188,26 +179,20 @@ defaultSemantics.addOperation('eval', {
             statementDefinition = if_then(condition, then.then)
         }
         delete statementDefinition.line;
+
         return statementDefinition;
     },
 
-    ExpStatement(e) {
-        const funcCall: StatementDefinition = {
-            type: 'expression',
-            expression: e.eval(),
-        }
-        return funcCall
-    },
+    ExpStatement: (e): StatementDefinition => ({
+        type: 'expression',
+        expression: e.eval(),
+    }),
 
-    Else(_, g) {
-        return g.eval();
-    },
+    Else: (_, g) => g.eval(),
 
-    Goto(_, n) {
-        return Number(n.sourceString)
-    },
+    Goto: (_, n) => Number(n.sourceString),
 
-    DimStatement(_, l, t) {
+    DimStatement(_, l, t): StatementDefinition[] {
         const names = l.asIteration().children.map(c => c.sourceString);
 
         const statements = names.map(name => {
@@ -224,27 +209,20 @@ defaultSemantics.addOperation('eval', {
     },
 
 
-    LetStatement(_, n, __, e) {
-        const statementDefinition: StatementDefinition = {
-            type: 'let',
-            assign: {
-                name: n.sourceString,
-                expression: e.eval(),
-            },
-        }
-        return statementDefinition;
-    },
+    LetStatement: (_, n, __, e): StatementDefinition => ({
+        type: 'let',
+        assign: {
+            name: n.sourceString,
+            expression: e.eval(),
+        },
+    }),
 
+    FuncExp: (n, _, a, __) => call(n.sourceString, a.eval()),
 
-
-    FuncExp(n, _, a, __) {
-        const funcCall: Expression<DVMType> = call(n.sourceString, a.eval())
-        return funcCall
-    },
-
-    FuncArguments(l) {
-        return l.asIteration().children.map(a => (a.eval()));
-    },
+    FuncArguments: (l) => l
+        .asIteration()
+        .children
+        .map(a => (a.eval())),
 
     // cases when identifier comes first
 
@@ -301,13 +279,10 @@ defaultSemantics.addOperation('eval', {
         return expression
     },
 
-    IdentFirstExp_strCct(n, c, e) {
-        const expression: Expression<DVMType> = op.str.concat(
-            name(n.sourceString),
-            e.eval()
-        );
-        return expression
-    },
+    IdentFirstExp_strCct: (n, c, e) => op.str.concat(
+        name(n.sourceString),
+        e.eval()
+    ),
 
     IdentFirstExp_unknownFunc(n, o, f) {
         const operator = o.sourceString == '+' ? {
@@ -408,9 +383,9 @@ defaultSemantics.addOperation('eval', {
     StrCctExp_concat: strCalc,
     StrCctStrictExp_concat: strCalc,
 
-    StrPriExp_name(n) {
-        return { type: 'name', name: n.sourceString }
-    },
+    StrPriExp_name: (n): Expression<DVMType> => ({
+        type: 'name', name: n.sourceString
+    }),
 
 
     IntCmpExp_cmp(e, c, bs) {
@@ -462,20 +437,15 @@ defaultSemantics.addOperation('eval', {
 
 
 
-    number(n) {
-        const value: Expression<DVMType.Uint64> = {
-            type: 'value',
-            value: Number(n.sourceString)
-        };
-        return value
-    },
-    string(_, s, __) {
-        const value: Expression<DVMType.String> = {
-            type: 'value',
-            value: s.sourceString
-        };
-        return value
-    },
+    number: (n): Expression<DVMType.Uint64> => ({
+        type: 'value',
+        value: Number(n.sourceString)
+    }),
+
+    string: (_, s, __): Expression<DVMType.String> => ({
+        type: 'value',
+        value: s.sourceString
+    }),
 
 })
 
