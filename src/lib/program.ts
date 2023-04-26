@@ -1,14 +1,17 @@
 
 //@ts-ignore
 import * as ohm from 'ohm-js';
-import { Argument, DVMType, Expression, FunctionHeader, FunctionType, Statement, StatementDefinition } from '../types/program';
+import { Node as OhmNode } from 'ohm-js';
+import { Argument, BinaryOperator, BitwiseOperator, CalcCommonOperator, CalcOperator, DVMType, Expression, FunctionHeader, FunctionType, LogicalOperator, Operator, Program, Statement, StatementDefinition } from '../types/program';
 import p from './grammar/program.ohm';
+import p2 from './grammar/program.v2.ohm';
 import { call, if_then, name, op } from './build';
 
 export const ProgramGrammar = ohm.grammar(p);
-
+export const ProgramGrammarV2 = ohm.grammar(p2);
 
 export const defaultSemantics = ProgramGrammar.createSemantics();
+/*
 defaultSemantics.addOperation('eval', {
 
     Program(p) {
@@ -60,7 +63,7 @@ defaultSemantics.addOperation('eval', {
         { type: 'comment', comment: c.sourceString.trim() }
     ),
 
-    FunctionDeclaration(h, b, _, __): FunctionType {
+    FunctionDeclaration(c, h, b, _, __): FunctionType {
         const statements = b.eval()
         return {
             ...h.eval(),
@@ -448,6 +451,213 @@ defaultSemantics.addOperation('eval', {
     }),
 
 })
+*/
+
+export const semantics = ProgramGrammarV2.createSemantics();
+
+semantics.addOperation('eval', {
+    Program(fd) {
+        const comments = fd.comments();
+        console.warn(comments);
+
+        const functions: FunctionType[] =
+            mapStarRule<FunctionType>(fd, child => child.eval())
+        const program: Program = { functions }
+
+        return program as any;// make compiler happy
+    },
+
+
+    FunctionDeclaration(_, h, b, __, ___): FunctionType {
+        const header: FunctionHeader = h.eval();
+        const statements: Statement[] = b.numChildren > 0 ? b.children[0].eval() : [];
+        return { ...header, statements }
+    },
+
+    FunctionHeader(n, _, a, __, t): FunctionHeader {
+        const name = n.sourceString;
+        const args = a.eval();
+        const returnType = DVMType[t.sourceString as keyof typeof DVMType];
+        return { name, args, return: returnType }
+    },
+
+    FunctionHeaderArguments: l =>
+        l.asIteration()
+            .children
+            .map(arg => arg.eval()),
+
+    FunctionHeaderArgument: (n, t) => ({
+        name: n.sourceString,
+        type: DVMType[t.sourceString as keyof typeof DVMType]
+    }),
+
+    FunctionBody: (l) => mapStarRule<Statement | Statement[]>(l, line => line.eval())
+        .filter(x => x != null)
+        .flat(), // some lines produces multiple statements such as DIM
+
+    FunctionLine_withStatement(n, s): Statement | Statement[] {
+        const line = Number(n.sourceString);
+        const _statements: StatementDefinition | StatementDefinition[]
+            = s.eval();
+        if (_statements instanceof Array) {
+            return _statements.map(statement => ({ // array is flattened afterwards
+                line,
+                ...statement
+            }))
+        } else {
+            return {
+                line,
+                ..._statements
+            }
+        }
+
+    },
+    FunctionLine_emptyLine: (_) => null, // filtered
+
+    // Statement Definitions
+
+    DeclarationStatement: (_, l, __, t): StatementDefinition[] => // array is flattened aftewards
+        l.asIteration()
+            .children
+            .map((n => ({
+                type: 'dim',
+                declare: {
+                    name: n.sourceString,
+                    type: DVMType[t.sourceString as keyof typeof DVMType]
+                }
+            }))),
+
+    ReturnStatement: (_, e): StatementDefinition => ({
+        type: 'return',
+        expression: e.eval(),
+    }),
+
+    BranchStatement: (_, e, __, g, el): StatementDefinition => {
+        const _else = el.numChildren == 1 ? el.children[0].eval() : null;
+        return {
+            type: 'branch',
+            branch: _else ? {
+                type: 'if-then-else',
+                condition: e.eval(),
+                then: g.eval(),
+                else: _else
+            } : {
+                type: 'if-then',
+                condition: e.eval(),
+                then: g.eval(),
+            }
+        }
+    },
+
+    ExpressionStatement: (e): StatementDefinition => ({
+        type: 'expression',
+        expression: e.eval()
+    }),
+
+    Goto: (_, l) => Number(l.sourceString),
+
+    // Expression
+
+    EqualityExpression_eq: genericOperation(logicalOperator),
+    EqualityExpression_ne: genericOperation(logicalOperator),
+
+    RelationalExpression_ge: genericOperation(logicalOperator),
+    RelationalExpression_gt: genericOperation(logicalOperator),
+    RelationalExpression_le: genericOperation(logicalOperator),
+    RelationalExpression_lt: genericOperation(logicalOperator),
+
+    BitwiseORExpression_or: genericOperation(bitwiseOperator),
+    BitwiseXORExpression_xor: genericOperation(bitwiseOperator),
+    BitwiseAndExpression_and: genericOperation(bitwiseOperator),
+
+    ShiftExpression_lsl: genericOperation(bitwiseOperator),
+    ShiftExpression_lsr: genericOperation(bitwiseOperator),
+
+    AdditiveExpression_add: genericOperation(calcOperator),
+    AdditiveExpression_sub: genericOperation(calcOperator),
+    AdditiveExpression_mod: genericOperation(calcOperator),
+
+    MultiplicativeExpression_mul: genericOperation(calcOperator),
+    MultiplicativeExpression_div: genericOperation(calcOperator),
+
+    UnaryIntExpression_not: (_, e): Expression<DVMType> => ({
+        type: 'operation',
+        operands: [e.eval()],
+        operationType: DVMType.Uint64,
+        operator: {
+            type: 'bitwise',
+            bitwise: '!',
+        }
+    }),
+
+    PrimaryExpression_call: (n, _, al, __): Expression<DVMType> => ({
+        type: 'function',
+        function: {
+            name: n.sourceString,
+            args: al.asIteration()
+                .children
+                .map(expression => expression.eval())
+        }
+    }),
+
+    PrimaryExpression_name: (n): Expression<DVMType> => ({ type: 'name', name: n.sourceString }),
+
+    // Base
+    space: (s) => {
+        console.log(s.ctorName);
+    },
+
+    number: (n): Expression<DVMType.Uint64> => ({
+        type: 'value',
+        value: Number(n.sourceString)
+    }),
+
+    string: (_, s, __): Expression<DVMType.String> => ({
+        type: 'value',
+        value: s.sourceString
+    }),
+
+
+})
+
+semantics.addOperation('comments', {
+    _iter() {
+        let iter = []
+        for (let index = 0; index < arguments.length; index++) {
+            const child = arguments[index];
+            iter.push(child.comments())
+        }
+        return iter;
+    },
+    _nonterminal() {
+        let iter = [];
+        for (let index = 0; index < arguments.length; index++) {
+            const child = arguments[index];
+            iter.push(child.comments())
+        }
+        return iter;
+    },
+    
+    
+    space: (s) => {
+        console.log(s);
+        
+        return s.eval()
+    },
+    comment: (c) => {
+        console.log(c.sourceString);
+        
+    }
+})
+
+function mapStarRule<T = any>(rule, callback: (child: ohm.Node, index: number) => T): T[] {
+    let result = []
+    for (let index = 0; index < rule.numChildren; index++) {
+        const element = rule.children[index];
+        result.push(callback(element, index))
+    }
+    return result
+}
 
 function strCalc(e, o, p) {
     const strExp: Expression<DVMType> = {
@@ -461,6 +671,78 @@ function strCalc(e, o, p) {
     }
     return strExp;
 }
+
+
+function logicalOperator(o): Operator<DVMType> {
+    return {
+        type: 'logical',
+        logical: o.sourceString as LogicalOperator
+    }
+}
+
+function calcOperator<T extends CalcOperator>(o): Operator<DVMType> {
+    return {
+        type: 'calc',
+        calc: o.sourceString as T
+    }
+}
+
+function bitwiseOperator(o): Operator<DVMType> {
+    return {
+        type: 'bitwise',
+        bitwise: o.sourceString as BitwiseOperator
+    }
+}
+
+function genericOperation(_operator: (_) => Operator<DVMType>) {
+    return (l, o, r): Expression<DVMType> => {
+        const operator = _operator(o)
+        const guessedOperationType =
+            operator.type == 'bitwise'
+                ? DVMType.Uint64
+                : operator.type == 'logical'// && !['==', '!='].includes(operator.logical)
+                    ? DVMType.Uint64
+                    : operator.type == 'calc' && operator.calc != '+'
+                        ? DVMType.Uint64
+                        : DVMType.unknown
+
+        const left: Expression<DVMType> = l.eval();
+        const right: Expression<DVMType> = r.eval();
+        const operands = [left, right];
+        let finalOperationType = guessedOperationType;
+        if (guessedOperationType == DVMType.unknown) {
+            console.log({ left, right });
+            //! // TODO Check if the use case is actually simpler to solve
+            // direct guess by operand value or operation type
+            operands.forEach(operand => {
+                if (operand.type == 'value') {
+                    finalOperationType = typeof operand.value == 'number'
+                        ? DVMType.Uint64
+                        : DVMType.String;
+                } else if (operand.type == 'operation' && operand.operationType != DVMType.unknown) {
+                    // Logical operation (especially ==) always return Uint64, wether the args are string or not
+                    if (operand.operator.type == 'logical') {
+                        finalOperationType = DVMType.Uint64;
+                    } else { // Calc operations will return the type of their arguments
+                        finalOperationType = operand.operationType;
+                    }
+                }
+            })
+
+            // TODO guess recursively from left and right ?
+        }
+
+        const operation: Expression<DVMType> = {
+            type: 'operation',
+            operationType: finalOperationType,
+            operands,
+            operator
+        }
+        return operation
+    }
+}
+
+
 
 function intCalc(e, o, n) {
 

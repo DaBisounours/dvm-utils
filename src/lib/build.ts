@@ -48,6 +48,10 @@ export function return_value(value: string | number, line: number): Statement {
     return { line, type: 'return', expression: val(value) }
 }
 
+export function return_expression(expression: Expression<DVMType>, line: number): Statement {
+    return { line, type: 'return', expression }
+}
+
 
 export function store(key: Expression<DVMType>, value: Expression<DVMType>, line: number): Statement {
     return call.statement("STORE", [key, value], line)
@@ -107,8 +111,8 @@ function _op(
 export const op = {
     str: {
         concat: _op('+', DVMType.String),
-        eq: _op('==', DVMType.String),
-        ne: _op('!=', DVMType.String),
+        eq: _op('==', DVMType.Uint64),
+        ne: _op('!=', DVMType.Uint64),
     },
     int: {
         eq: _op('==', DVMType.Uint64),
@@ -131,8 +135,8 @@ export const op = {
     },
     var: {
         plus: _op('+', DVMType.unknown),
-        eq: _op('==', DVMType.unknown),
-        ne: _op('!=', DVMType.unknown),
+        eq: _op('==', DVMType.Uint64),//! I changed that
+        ne: _op('!=', DVMType.Uint64), //! I changed that
     },
 }
 

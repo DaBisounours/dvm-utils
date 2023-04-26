@@ -102,13 +102,13 @@ DVMProgram {
     | FuncExp "+" StrCctExp --strCct
     
   //! Identifier on left hand
+  
   IdentFirstExp 
-    = ident ("+" | strComparator) FuncExp --unknownFunc
-    | ident ("+" | strComparator) ident --unknown
-    | ident intComparator IntBinXOrExp --intCmp
-    | ident strComparator StrCctExp --strCmp
-    | ident "+" StrCctExp --strCct
-
+  = ident ("+" | strComparator) FuncExp --unknownFunc
+  | ident intComparator IntBinXOrExp --intCmp
+  | ident strComparator StrCctExp --strCmp
+  | ident "+" StrCctExp --strCct
+  | ident ("+" | strComparator) ident --unknown
 
   /* 
    * STRING Expressions

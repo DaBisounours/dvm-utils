@@ -8,9 +8,14 @@ test('experiment #1', () => {
     const expected: Program = {
         functions: [
             {
-                name: 'Initialize',
+                name: 'SetSCIDHeaders',
                 return: DVMType.Uint64,
-                args: [],
+                args: [
+                    { name: 'scid', type: DVMType.String },
+                    { name: 'name', type: DVMType.String },
+                    { name: 'descr', type: DVMType.String },
+                    { name: 'icon', type: DVMType.String },
+                ],
                 statements: [
                     if_then.else(op.int.eq(
                         call('EXISTS', [op.str.concat(
@@ -62,7 +67,7 @@ test('experiment #1', () => {
     };
     //console.dir({expected}, {depth: null});
     
-    const code = `Function Initialize() Uint64
+    const code = `Function SetSCIDHeaders(scid String, name String, descr String, icon String) Uint64
     10  IF EXISTS(scid + "owner") == 1 THEN GOTO 20 ELSE GOTO 100
     20  IF LOAD(scid + "owner") == SIGNER() THEN GOTO 30 ELSE GOTO 100
     30  IF DEROVALUE() < 200 THEN GOTO 100

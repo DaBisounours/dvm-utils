@@ -33,25 +33,37 @@ export const parse = (code: string): Program => {
 
   let evaluated: Program = defaultSemantics(match).eval()
   const context = getContext(evaluated);
-  //console.log(context);
+  //console.dir({ context }, { depth: null });
 
   // TODO catch matching errors
   // TODO nameCheck
-  nameCheck(evaluated, context);
+  //nameCheck(evaluated, context);
   // TODO typeCheck
 
   return evaluated;
 }
 
-function find_rec(
-  e: Expression<DVMType>, actions: {
-    target: "function" | "name" | "value" | "operation",
-    callback: (expression: Expression<DVMType>) => Expression<DVMType>,
-  }[]
+type Action = {
+  target: "function" | "name" | "value" | "operation",
+  callback: (expression: Expression<DVMType>) => Expression<DVMType>,
+}
+
+function check_expression_rec(
+  e: Expression<DVMType>, actions: Action[]
 ): Expression<DVMType> {
 
-  //console.log({ e }, e.type);
-  // TODO continue
+  switch (e.type) {
+    case 'function':
+      e.function.args = e.function.args
+        .map(arg => check_expression_rec(arg, actions));
+      break;
+    case 'operation':
+      e.operands = e.operands
+        .map(arg => check_expression_rec(arg, actions))
+      break;
+    default:
+      break;
+  }
 
   for (let index = 0; index < actions.length; index++) {
     const action = actions[index];
@@ -63,29 +75,76 @@ function find_rec(
   return e;
 }
 
-function nameCheck(evaluated: Program, context: Context) {
-
-  const actions = [{
-    target: "function" as const,
-    callback: (e: Expression<DVMType>) => {
-      //console.log(e, 'from callback'); //  TODO continue
-      
-      return e;
-    }
-  }]
-
-  evaluated.functions
+function check_rec(p: Program, actions: Action[]): Program {
+  p.functions = p.functions
     .map(f => {
-      //console.warn(f.name);
-// TODO continue
-      return f.statements
+      f.statements = f.statements
         .map(s => {
-          if (s.type === 'expression') {
-            s.expression = find_rec(s.expression, actions);  
+          switch (s.type) {
+            case 'expression':
+            case 'return':
+              s.expression = check_expression_rec(s.expression, actions);
+              break;
+            case 'branch':
+              s.branch.condition = check_expression_rec(s.branch.condition, actions);
+              break;
+            case 'let':
+              s.assign.expression = check_expression_rec(s.assign.expression, actions);
+              break;
+            default:
+              break;
           }
           return s;
         })
+      return f;
     })
+  return p;
+}
+
+function nameCheck(evaluated: Program, context: Context) {
+
+  const actions = [
+    // function
+    {
+      target: "function" as const,
+      callback: (e: Expression<DVMType>) => {
+        if (e.type === 'function') {
+          const fname = e.function.name;
+          const inContextName = context.names[fname] || context.names[fname.toUpperCase()];
+          if (inContextName) {
+            // if is NOT a function
+            if (!inContextName.type.endsWith('function')) {
+              throw new Error(`${inContextName.type} "${fname}" exists but is used as a function`)
+            }
+          } else {
+            throw new Error(`function "${fname}" not found`);
+          }
+        }
+        return e;
+      }
+    },
+    // name
+    {
+      target: "name" as const,
+      callback: (e: Expression<DVMType>) => {
+        if (e.type === 'name') {
+          const name = e.name;
+          const inContextName = context.names[name];
+          if (inContextName) {
+            // if is a function
+            if (inContextName.type.endsWith('function')) {
+              throw new Error(`${inContextName.type} "${name}" exists but is used as a value`)
+            }
+          } else {
+            throw new Error(`function "${name}" not found`);
+          }
+        }
+        return e;
+      }
+    }
+  ]
+
+  return check_rec(evaluated, actions);;
 }
 
 

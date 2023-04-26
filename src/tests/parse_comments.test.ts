@@ -17,7 +17,7 @@ test('inline comment', () => {
         statements: [
           noop(10),
           comment('Comment // whatever /* Whatever */', 10),
-          call.statement("someCodeHere", [], 11),
+          call.statement("EXISTS", [], 11),
           comment('Whatever //', 11),
           comment('Whatever*', 11),
         ],
@@ -27,7 +27,7 @@ test('inline comment', () => {
   const code = `// inline comment
 Function Initialize() Uint64
   10 // Comment // whatever /* Whatever */
-  11 /*Whatever // */someCodeHere()  /* Whatever**/
+  11 /*Whatever // */EXISTS()  /* Whatever**/
 End Function
     `;
   expect(parse(code)).toMatchObject(expected)

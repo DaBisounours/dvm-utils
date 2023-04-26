@@ -1,7 +1,7 @@
 import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { Program, DVMType } from '../types/program';
-import { call, name, op, val } from '../lib/build';
+import { call, name, op, return_value, val } from '../lib/build';
 
 
 test('expressions', () => {
@@ -33,6 +33,22 @@ test('expressions', () => {
 
                 ],
             },
+            {
+                name: 'a',
+                return: DVMType.Uint64,
+                args: [],
+                statements: [
+                    return_value(0, 10)
+                ],
+            },
+            {
+                name: 'f',
+                return: DVMType.Uint64,
+                args: [],
+                statements: [
+                    return_value(0, 10)
+                ],
+            }
         ],
     };
     const code = `Function Initialize() Uint64
@@ -54,6 +70,14 @@ test('expressions', () => {
         a - f(),
         a - (f() - 1)
     )
+  End Function
+  
+  Function a() Uint64
+    10 RETURN 0
+  End Function
+  
+  Function f() 
+    10 RETURN 0
   End Function`;
     expect(parse(code)).toMatchObject(expected)
 });
