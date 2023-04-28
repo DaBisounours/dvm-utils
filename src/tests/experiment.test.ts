@@ -1,5 +1,5 @@
 import { test, expect } from '@jest/globals';
-import { parse } from '../lib/parse';
+import { evaluate } from '../lib/parse';
 import { Program, DVMType } from '../types/program';
 import { call, if_then, name, op, return_value, store, val } from '../lib/build';
 
@@ -11,5 +11,5 @@ test('experiment #1', () => {
     //console.dir({expected}, {depth: null});
     
     const code = ``;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });

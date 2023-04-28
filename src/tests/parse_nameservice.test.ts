@@ -3,7 +3,7 @@
 import { test, expect } from '@jest/globals';
 
 
-import { parse } from '../lib/parse';
+import { evaluate } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 
 import { return_value, store, name, val, call, op, if_then, comment, declare } from '../lib/build';
@@ -220,7 +220,7 @@ test('nameservice', () => {
      40  RETURN 0
      End Function
     `
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 })
 
 

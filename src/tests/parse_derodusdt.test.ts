@@ -5,7 +5,7 @@
 import { test, expect } from '@jest/globals';
 
 
-import { parse } from '../lib/parse';
+import { evaluate } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 
 import { return_value, store, name, val, call, op, if_then, declare, assign, comment, return_expression } from '../lib/build';
@@ -458,7 +458,7 @@ for (const f in functions) {
 					element.expected
 				]
 			}
-			expect(parse(element.code)).toMatchObject(expected)
+			expect(evaluate(element.code)).toMatchObject(expected)
 		})
 	}
 }
@@ -836,5 +836,5 @@ Function castVote(trustee String, key String, proposal String) Uint64
 	1000 RETURN 0
 End Function
 `;
-	expect(parse(code)).toMatchObject(expected)
+	expect(evaluate(code)).toMatchObject(expected)
 })*/

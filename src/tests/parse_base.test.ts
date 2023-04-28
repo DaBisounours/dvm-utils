@@ -1,7 +1,7 @@
 import { test, expect } from '@jest/globals';
 
 
-import { parse } from '../lib/parse';
+import { evaluate } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 import { comment } from '../lib/build';
 
@@ -9,7 +9,7 @@ test('empty', () => {
   const expected: Program = {
     functions: [],
   };
-  expect(parse(``)).toMatchObject(expected)
+  expect(evaluate(``)).toMatchObject(expected)
 });
 
 test('no function', () => {
@@ -17,7 +17,7 @@ test('no function', () => {
     functions: [],
     //headers: ['Some random comment without a Function'],
   };
-  expect(parse(`// Some random comment without a Function`)).toMatchObject(expected)
+  expect(evaluate(`// Some random comment without a Function`)).toMatchObject(expected)
 });
 
 
@@ -35,7 +35,7 @@ test('initialize', () => {
   };
   const code = `Function Initialize() Uint64
 End Function`;
-  expect(parse(code)).toMatchObject(expected)
+  expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -56,7 +56,7 @@ test('header', () => {
 /* Multiline */
 Function Initialize() Uint64
 End Function`;
-  expect(parse(code)).toMatchObject(expected)
+  expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -78,7 +78,7 @@ test('arg', () => {
   const code = `// arg
 Function Initialize(myArg Uint64, mySecondArg String) Uint64
 End Function`;
-  expect(parse(code)).toMatchObject(expected)
+  expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -108,5 +108,5 @@ Function Initialize() Uint64
   10 // Comment after first line
 End Function
     `;
-  expect(parse(code)).toMatchObject(expected)
+  expect(evaluate(code)).toMatchObject(expected)
 });

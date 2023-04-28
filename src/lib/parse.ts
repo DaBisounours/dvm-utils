@@ -20,7 +20,19 @@ import { ProgramGrammar, semantics } from "./program"
  * @param code - String containing the SC code.
  * @returns Parsed program.
  */
-export const parse = (code: string): Program => {
+export function parse(code: string): Program {
+  const evaluated = evaluate(code);
+  const context = getContext(evaluated);
+
+  // TODO catch matching errors
+  // TODO nameCheck
+  nameCheck(evaluated, context);
+  // TODO typeCheck
+
+  return evaluated;
+}
+
+export function evaluate(code: string): Program {
   const programParser = ProgramGrammar;
 
   const match = programParser.match(code)
@@ -32,15 +44,9 @@ export const parse = (code: string): Program => {
   }
 
   let evaluated: Program = semantics(match).eval()
-  const context = getContext(evaluated);
   //console.dir({ context }, { depth: null });
+  return evaluated
 
-  // TODO catch matching errors
-  // TODO nameCheck
-  //nameCheck(evaluated, context);
-  // TODO typeCheck
-
-  return evaluated;
 }
 
 type Action = {

@@ -1,7 +1,7 @@
 import { test, expect } from '@jest/globals';
 
 
-import { parse } from '../lib/parse';
+import { evaluate } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 import { call, comment } from '../lib/build';
 
@@ -32,7 +32,7 @@ Function Initialize() Uint64
   11 /*Whatever // */EXISTS()  /* Whatever**/
 End Function
     `;
-  expect(parse(code)).toMatchObject(expected)
+  expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -65,6 +65,6 @@ without line number
   11 /*Whatever // */ /* Whatever**/
 End Function
         `;
-  expect(parse(code)).toMatchObject(expected)
+  expect(evaluate(code)).toMatchObject(expected)
 });
 

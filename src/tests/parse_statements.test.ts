@@ -1,7 +1,7 @@
 import { test, expect } from '@jest/globals';
 
 
-import { parse } from '../lib/parse';
+import { evaluate } from '../lib/parse';
 import { DVMType, Program, Statement } from '../types/program';
 import { assign, declare, op, return_expression, return_value, val } from '../lib/build';
 
@@ -32,7 +32,7 @@ test('dim', () => {
     120 DIM var3, var4 as Uint64
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -60,7 +60,7 @@ test('let', () => {
     120 RETURN 0
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -83,7 +83,7 @@ test('return', () => {
     100 RETURN 0
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
 
 test('string expression ==', () => {
@@ -134,7 +134,7 @@ test('string expression ==', () => {
     110 RETURN "a" != "a"
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
 
 test('string expression calc', () => {
@@ -168,7 +168,7 @@ test('string expression calc', () => {
     100 RETURN "a" + "a"
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -210,7 +210,7 @@ test('int expression cmp', () => {
     150 RETURN 1 > 1
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
 
 
@@ -390,7 +390,7 @@ test('int expression calc', () => {
     160 RETURN 1 % 1
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
 
 test('bitwise expression calc / cmp', () => {
@@ -430,5 +430,5 @@ test('bitwise expression calc / cmp', () => {
     
   End Function
       `;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });

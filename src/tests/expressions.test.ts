@@ -1,5 +1,5 @@
 import { test, expect } from '@jest/globals';
-import { parse } from '../lib/parse';
+import { evaluate } from '../lib/parse';
 import { Program, DVMType } from '../types/program';
 import { call, name, op, return_value, val } from '../lib/build';
 
@@ -79,5 +79,5 @@ test('expressions', () => {
   Function f() Uint64
     10 RETURN 0
   End Function`;
-    expect(parse(code)).toMatchObject(expected)
+    expect(evaluate(code)).toMatchObject(expected)
 });
