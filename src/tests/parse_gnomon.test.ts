@@ -10,15 +10,15 @@ import { return_value, store, name, val, call, op, if_then } from '../lib/build'
 
 test('gnomon', () => {
     const expected: Program = {
-        headers: ['Copyright 2022 Civilware. All rights reserved.',
-            'Gnomon - DERO Network Indexer (https://github.com/civilware/Gnomon)',
-            'Usernames: Gnomon, gnomon'],
         functions: [
             // InitializePrivate
             {
                 name: 'InitializePrivate',
                 return: DVMType.Uint64,
                 args: [],
+                comments: ['Copyright 2022 Civilware. All rights reserved.',
+                    'Gnomon - DERO Network Indexer (https://github.com/civilware/Gnomon)',
+                    'Usernames: Gnomon, gnomon'],
                 statements: [
                     if_then(op.int.eq(
                         call('EXISTS', [val('owner')]),
@@ -144,17 +144,17 @@ test('gnomon', () => {
                     ), 40),
                     store(name("scid"),
                         op.str.concat(
-                            name('name'),
                             op.str.concat(
                                 op.str.concat(
                                     op.str.concat(
-                                        val(";"),
-                                        name("descr")    
+                                        name('name'),
+                                        val(";")
                                     ),
-                                    val(";")
+                                    name("descr")
                                 ),
-                                name("icon")
-                            )
+                                val(";")
+                            ),
+                            name("icon")
                         )
                         , 50),
                     return_value(0, 100)

@@ -11,7 +11,7 @@ import { return_value, store, name, val, call, op, if_then, comment, declare } f
 
 test('nameservice', () => {
     const expected: Program = {
-        headers: [`Name Service SMART CONTRACT in DVM-BASIC.  
+        /*headers: [`Name Service SMART CONTRACT in DVM-BASIC.  
     Allows a user to register names which could be looked by wallets for easy to use name while transfer`,
             'This function is used to initialize parameters during install time',
             'Register a name, limit names of 5 or less length',
@@ -20,7 +20,7 @@ test('nameservice', () => {
             'Until the new owner claims ownership, existing owner remains owner',
             'If signer is owner, provide him rights to update code anytime',
             'make sure update is always available to SC'
-        ],
+        ],*/
         functions: [
             // Initialize
             {

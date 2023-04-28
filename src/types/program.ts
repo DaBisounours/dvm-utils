@@ -1,10 +1,10 @@
 export type Program = {
-  headers?: string[];
   name?: string;
   functions: FunctionType[];
 };
 
 export type FunctionHeader = {
+  comments?: string[] // TODO make necessary
   name: string;
   return: DVMType;
   args: Argument[];
@@ -33,13 +33,13 @@ export function matchDVMType(s: string) {
 }
 
 export type StatementDefinition =
-  | { type: 'no-op' }
-  | { type: 'comment'; comment: string }
+  | { type: 'goto', goto: number }
   | { type: 'return'; expression: Expression<DVMType> }
   | { type: 'expression'; expression: Expression<DVMType> }
   | { type: 'branch'; branch: Branch }
   | { type: 'dim'; declare: Dim }
   | { type: 'let'; assign: Let }
+  | { type: 'comment'; comment: string }
 
 export type Statement = { line: number } & StatementDefinition
 
@@ -79,8 +79,8 @@ export type BitwiseOperator =
 export type BitwiseUnaryOperator = '!'
 
 export type BitwiseBinaryOperator =
-  | '&'
-  | '|'
+  | '&' | '&&'
+  | '|' | '||'
   | '^'
   | '<<'
   | '>>'

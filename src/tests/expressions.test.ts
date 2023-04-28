@@ -76,7 +76,7 @@ test('expressions', () => {
     10 RETURN 0
   End Function
   
-  Function f() 
+  Function f() Uint64
     10 RETURN 0
   End Function`;
     expect(parse(code)).toMatchObject(expected)

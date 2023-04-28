@@ -1,230 +1,176 @@
-export default String.raw`
-DVMProgram {
-
+export default String.raw`DVMProgram {
   /*
-  * Program
-  */
+   * PROGRAM & FUNCTION DECLARATION
+   */
 
   Program
-      = Program? FunctionDeclaration --function
-      | Program? Comment  --comment
-      
-  
-  
-  Comment
-      = singleLineComment
-      | multilineComment
-    
-  singleLineComment = "//" (~"\n" any)*
-      
-  multilineComment = "/*" (~"*/" any)+ "*/"
-  
-  /*
-   * Functions
-   */
+    = FunctionDeclaration*
 
   FunctionDeclaration
-    = FunctionHeader FunctionBody "End" "Function"
-  
-  FunctionHeader 
-    = "Function" FunctionName "(" FunctionArgs ")" type
+    = comment* "Function" multiLineComment* FunctionHeader comment* FunctionBody? "End" "Function"
 
-  FunctionName 
-    = ident
+  FunctionHeader
+    = identifier multiLineComment* "(" FunctionHeaderArguments ")" multiLineComment* type
 
-  FunctionArgs 
-    = ListOf<argumentDefinition, ",">
-      
-  argumentDefinition 
-    = ident spaces type
+  FunctionHeaderArguments
+    = ListOf<FunctionHeaderArgument , ",">
+
+  FunctionHeaderArgument
+    = multiLineComment* identifier multiLineComment* type multiLineComment*
 
   FunctionBody
-    = (Line|Comment)*
-    
+    = FunctionLine*
 
-  /*
-  * Statements
-  */
+  FunctionLine
+    = number multiLineComment* ~"End" ~number (Statement comment*) --withStatement
+    | number comment* --emptyLine
 
-  lineNumber
-    = digit+
+  Statement
+    = DeclarationStatement
+    | AssignmentStatement
+    | GotoStatement
+    | BranchStatement
+    | ReturnStatement
+    | ExpressionStatement
 
-  Line
-    = multilineComment* lineNumber multilineComment* Statement? Comment*
+  DeclarationStatement
+    = dim ListOf<identifier, ","> as type
 
-  Statement 
-    = ReturnStatement
-    | DimStatement
-    | LetStatement
-    | ConditionStatement
-    | ExpStatement
+  as
+    = caseInsensitive<"AS">
 
-  ExpStatement
-    = ~"End" Exp      
-  
+  dim
+    = caseInsensitive<"DIM">
+
+  AssignmentStatement
+    = let identifier "=" Expression
+
+  let
+    = caseInsensitive<"LET">
+
+  GotoStatement
+    = Goto
+
+  goto
+    = caseInsensitive<"GOTO">
+  Goto
+    = goto number
+
+  BranchStatement
+    = if Expression then Goto Else?
+
+  if
+    = caseInsensitive<"IF">
+  then
+    = caseInsensitive<"THEN">
+
+  Else
+    = caseInsensitive<"ELSE"> Goto
+
+  keyword
+    = if | then | goto
+
   ReturnStatement
-    = "RETURN" Exp
+    = caseInsensitive<"RETURN"> Expression
 
-  DimStatement 
-    = "DIM" ListOf<ident, ","> type
-    
-  LetStatement 
-    = "LET" ident "=" Exp
+  ExpressionStatement
+    = Expression
+  /*
+   * EXPRESSION
+   */
 
-  ConditionStatement
-    = "IF" Exp "THEN" Goto Else?
-    
-  Else 
-    = "ELSE" Goto
-
-  Goto 
-    = "GOTO" lineNumber
-
+  Expression
+    = BitwiseORExpression
 
   /*
-   * Expressions
+   * In precedence order
    */
 
-  Exp
-    = IdentFirstExp
-    | FuncFirstExp
-    | IntBinXOrExp
-    | StrCmpExp 
-    | StrCctExp
+  PrimaryExpression
+    = "(" Expression ")" -- parenthesis
+    | identifier "(" ListOf<Expression, ","> ")" -- call
+    | number -- number
+    | string -- string
+    | identifier -- name
 
-  
-  //! Function on left hand
-  FuncFirstExp =
-    | FuncExp ("+" | strComparator) FuncExp --unknown
-      | FuncExp ("+" | strComparator) ident --unknownIdent
-    | FuncExp intComparator IntBinXOrExp --intCmp
-    | FuncExp strComparator StrCctExp --strCmp
-    | FuncExp "+" StrCctExp --strCct
-    
-  //! Identifier on left hand
-  
-  IdentFirstExp 
-  = ident ("+" | strComparator) FuncExp --unknownFunc
-  | ident intComparator IntBinXOrExp --intCmp
-  | ident strComparator StrCctExp --strCmp
-  | ident "+" StrCctExp --strCct
-  | ident ("+" | strComparator) ident --unknown
+  UnaryIntExpression
+    = "!" PrimaryExpression -- not
+    | PrimaryExpression
 
-  /* 
-   * STRING Expressions
-   */
-  // String compare returns Int so it is not used in concat precedence but standalone
-  //! Compare
-  StrCmpExp 
-    = StrCctExp strComparator StrCctExp 	-- cmp
-    | StrCctExp
+  MultiplicativeExpression
+    = MultiplicativeExpression "*" UnaryIntExpression -- mul
+    | MultiplicativeExpression "/" UnaryIntExpression -- div
+    | UnaryIntExpression
 
-  strComparator = "==" | "!="
+  AdditiveExpression
+    = AdditiveExpression "+" MultiplicativeExpression -- add
+    | AdditiveExpression "-" MultiplicativeExpression -- sub
+    | AdditiveExpression "%" MultiplicativeExpression -- mod
+    | MultiplicativeExpression
 
-  //! Concat
-  StrCctExp
-    = StrCctExp "+" StrPriExp 	-- concat
-  | StrPriExp
-    
-  StrCctStrictExp
-    = StrCctExp "+" StrPriExp 	-- concat
+  ShiftExpression
+    = ShiftExpression "<<" AdditiveExpression -- lsl
+    | ShiftExpression ">>" AdditiveExpression -- lsr
+    | AdditiveExpression
 
-  //! Priority 
-  StrPriExp
-    = FuncExp
-    | ident -- name
-    | string
+  RelationalExpression
+    = RelationalExpression "<=" ShiftExpression -- le
+    | RelationalExpression "<" ShiftExpression -- lt
+    | RelationalExpression ">=" ShiftExpression -- ge
+    | RelationalExpression ">" ShiftExpression -- gt
+    | ShiftExpression
 
-  /*
-   * INTEGER Expressions
-   */
-  
-  //! Binary XOR
-  IntBinXOrExp
-    = IntBinXOrExp "^" IntBinOrExp -- xor
-    | IntBinOrExp
-  
-  //! Binary OR
-  IntBinOrExp
-    = IntBinOrExp "|" IntBinAndExp -- or
-    | IntBinAndExp
-    
-  //! Binary AND
-  IntBinAndExp
-    = IntBinAndExp "&" IntCmpExp -- and
-    | IntCmpExp
-    
-    
-  //! Integer Compare
-  IntCmpExp
-    = IntCmpExp intComparator IntBinSftExp -- cmp
-    | IntBinSftExp
+  EqualityExpression
+    = EqualityExpression "==" RelationalExpression -- eq
+    | EqualityExpression "!=" RelationalExpression -- ne
+    | RelationalExpression
 
-  intComparator = ">=" | "<=" | "<" | ">" | "==" | "!="
+  BitwiseAndExpression
+    = BitwiseAndExpression ("&&" | "&") EqualityExpression -- and
+    | EqualityExpression
 
-  //! Binary Shift
-  IntBinSftExp
-    = IntBinSftExp "<<" IntAddSubExp 	-- left
-    | IntBinSftExp ">>" IntAddSubExp	-- right
-    | IntAddSubExp
+  BitwiseXORExpression
+    = BitwiseXORExpression "^" BitwiseAndExpression -- xor
+    | BitwiseAndExpression
 
-  
-  //! Integer Add / Subtract
-  IntAddSubExp
-    = IntAddSubExp "+" IntModExp -- add
-    | IntAddSubExp "-" IntModExp -- sub
-    | IntModExp
-  
-  IntModExp
-    = IntModExp "%" IntMulDivExp -- mod
-    | IntMulDivExp
-  
-  
-  //! Integer Multiply / Divide
-  IntMulDivExp
-    = IntMulDivExp "*" IntPriExp -- mul
-    | IntMulDivExp "/" IntPriExp -- div
-    | IntPriExp
+  BitwiseORExpression
+    = BitwiseORExpression ("||" | "|") BitwiseXORExpression -- or
+    | BitwiseXORExpression
 
-
-  //! Priority
-  IntPriExp
-    = "(" IntBinXOrExp ")"  -- intPparenthesis
-    | "(" StrCctStrictExp ")"  -- strParenthesis
-    | "!" IntPriExp -- not
-    | FuncExp
-    | ident -- name
-    | number
-
-  /*
-   * Function Call Expressions
-   */
-  //! Function
-  FuncExp
-    = ident "(" FuncArguments ")"
-
-  FuncArguments
-    = ListOf<Exp, ",">
-
-
+  FunctionCallExpression
+    = identifier "(" ListOf<Expression, ","> ")"
 
   /*
    * BASE
    */
-      
+
+  //space += comment
+
+  comment
+    = singleLineComment
+    | multiLineComment
+
+  multiLineComment
+    = "/*" (~"*/" any)* "*/"
+
+  singleLineComment
+    = "//" (~"\n" any)* ("\n"|end)
+
   string
-    = "\"" doubleStringCharacter* "\""
-  doubleStringCharacter 
+    = "\"" notDoubleQuoteAny* "\""
+
+  notDoubleQuoteAny
     = ~("\"") any
 
   type
     = "Uint64" | "String"
 
-  
-  ident  (an identifier)
+  identifier  (an identifier)
     = letter (alnum | "_")*
 
   number  (a number)
     = digit* "." digit+  -- fract
     | digit+             -- whole
-}`
+
+}
+`

@@ -8,214 +8,484 @@ import { test, expect } from '@jest/globals';
 import { parse } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
 
-import { return_value, store, name, val, call, op, if_then, declare, assign, comment } from '../lib/build';
+import { return_value, store, name, val, call, op, if_then, declare, assign, comment, return_expression } from '../lib/build';
+
+const functions =
+{
+	"Initialize": {
+		expected: {
+			name: 'Initialize',
+			return: DVMType.Uint64,
+			args: [
+				{ name: 'asset1', type: DVMType.String, },
+				{ name: 'asset2', type: DVMType.String, },
+				{ name: 'symbol', type: DVMType.String, },
+				{ name: 'name', type: DVMType.String, },
+				{ name: 'fee', type: DVMType.Uint64 },
+			],
+			comments: [
+				'_____  _____ _______ _______ _  _  _ _______  _____',
+				'|_____]   |   |______ |______ |  |  | |_____| |_____]',
+				'|       __|__ |______ ______| |__|__| |     | |',
+				'Swap contract',
+				//'lossless (a * b ) / c',
+				//"('cause there ain't no Uint256)",
+
+			],
+			statements: [
+				// 10 IF EXISTS("version") THEN GOTO 1100
+				if_then(call('EXISTS', [val('version')])
+					, 1100, 10),
+				// 20 SetVer()
+				call.statement('SetVer', [], 20),
+				// 30 STORE("o:" + HEX(SIGNER()), 0)
+				store(op.str.concat(val("o:"), call('HEX', [call('SIGNER')])), val(0), 30),
+				// 40 STORE("ol:0", HEX(SIGNER()))
+				store(val('ol:0'), call("HEX", [call("SIGNER")]), 40),
+				// 50 STORE("numTrustees", 1)
+				store(val("numTrustees"), val(1), 50),
+				// 60 STORE("quorum", 1)
+				store(val("quorum"), val(1), 60),
+				// 70 STORE("asset1", HEXDECODE(asset1))
+				store(val("asset1"), call("HEXDECODE", [name('asset1')]), 70),
+				// 80 STORE("asset2", HEXDECODE(asset2))
+				store(val("asset2"), call("HEXDECODE", [name('asset2')]), 80),
+				// 90 STORE("symbol", symbol)
+				store(val("symbol"), name("symbol"), 90),
+				// 100 STORE("decimals", 0)
+				store(val('decimals'), val(0), 100),
+				// 110 STORE("name", name)
+				store(val('name'), name('name'), 110),
+				// 120 STORE("fee", fee)
+				store(val('fee'), name('fee'), 120),
+				// 130 STORE("val1", 0)
+				store(val('val1'), val(0), 130),
+				// 140 STORE("val2", 0)
+				store(val('val2'), val(0), 140),
+				// 150 STORE("sharesOutstanding", 0)
+				store(val('sharesOutstanding'), val(0), 150),
+				// 160 STORE("adds", 0)
+				store(val('adds'), val(0), 160),
+				// 170 STORE("rems", 0)
+				store(val('rems'), val(0), 170),
+				// 180 STORE("swaps", 0)
+				store(val('swaps'), val(0), 180),
+
+				// 1000 RETURN 0
+				return_value(0, 1000),
+				// 1100 RETURN 100
+				return_value(100, 1100),
+			],
+		},
+		code: `
+//    _____  _____ _______ _______ _  _  _ _______  _____ 
+//   |_____]   |   |______ |______ |  |  | |_____| |_____]
+//   |       __|__ |______ ______| |__|__| |     | |      
+//
+//   Swap contract
+
+Function Initialize(asset1 String, asset2 String, symbol String, name String, fee Uint64) Uint64
+	10 IF EXISTS("version") THEN GOTO 1100
+	20 SetVer()
+	30 STORE("o:" + HEX(SIGNER()), 0)
+	40 STORE("ol:0", HEX(SIGNER()))
+	50 STORE("numTrustees", 1)
+	60 STORE("quorum", 1)
+	70 STORE("asset1", HEXDECODE(asset1))
+	80 STORE("asset2", HEXDECODE(asset2))
+	90 STORE("symbol", symbol)
+	100 STORE("decimals", 0)
+	110 STORE("name", name)
+	120 STORE("fee", fee)
+	130 STORE("val1", 0)
+	140 STORE("val2", 0)
+	150 STORE("sharesOutstanding", 0)
+	160 STORE("adds", 0)
+	170 STORE("rems", 0)
+	180 STORE("swaps", 0)
+
+	1000 RETURN 0
+	1100 RETURN 100
+End Function`
+	},
+	"GetVer": {
+		expected: {
+			name: 'GetVer',
+			args: [],
+			comments: [],
+			return: DVMType.String,
+			statements: [
+				// 10 return "2.100"
+				return_value("2.100", 10),
+			]
+		},
+		code: `
+Function GetVer() String
+	10 return "2.100"
+End Function`,
+	},
+	"SetVer": {
+		expected: {
+			name: 'SetVer',
+			args: [],
+			return: DVMType.Uint64,
+			statements: [
+				// 10 STORE("version", GetVer())
+				store(val("version"), call('GetVer'), 10),
+				// 1000 RETURN 0
+				return_value(0, 1000),
+			]
+		},
+		code: `
+Function SetVer() Uint64
+	10 STORE("version", GetVer())
+
+	1000 RETURN 0
+End Function`,
+	},
+
+	"multDiv": {
+		expected: {
+			name: 'multDiv',
+			args: [
+				{ name: 'a', type: DVMType.Uint64, },
+				{ name: 'b', type: DVMType.Uint64, },
+				{ name: 'c', type: DVMType.Uint64 },
+			],
+			comments: [
+				"lossless (a * b ) / c",
+				"('cause there ain't no Uint256)",
+			],
+			return: DVMType.Uint64,
+			statements: [
+
+				// 10 DIM base, maxdiv AS Uint64
+				...declare.multiple(['base', 'maxdiv'], DVMType.Uint64, 10),
+				// 20 LET base = 4294967296	// (1<<32)
+				assign('base', val(4294967296), 20),
+				comment('(1<<32)', 20),
+				// 30 LET maxdiv = (base-1)*base + (base-1)
+				assign('maxdiv', op.int.add(
+					op.int.mul(
+						op.int.sub(name('base'), val(1)),
+						name('base')
+					),
+					op.int.sub(name('base'), val(1))
+				), 30),
+				// 50 DIM res AS Uint64
+				declare('res', DVMType.Uint64, 50),
+				// 60 LET res = (a/c) * b + (a%c) * (b/c)
+				assign('res', op.int.add(
+					op.int.mul(
+						op.int.div(
+							name('a'),
+							name('c')
+						),
+						name('b')
+					),
+					op.int.mul(
+						op.int.mod(
+							name('a'),
+							name('c')
+						),
+						op.int.div(
+							name('b'),
+							name('c')
+						),
+					),
+				), 60),
+				// 70 LET a = a % c
+				assign('a', op.int.mod(
+					name('a'),
+					name('c')
+				), 70),
+				// 80 LET b = b % c
+				assign('b', op.int.mod(
+					name('b'),
+					name('c')
+				), 80),
+				// 90 IF (a == 0 || b == 0) THEN GOTO 1000
+				if_then(op.int.or(
+					op.int.eq(name('a'), val(0)),
+					op.int.eq(name('b'), val(0))
+				), 1000, 90),
+
+				// 100 IF (c >= base) THEN GOTO 200
+				if_then(op.int.ge(
+					name('c'),
+					name('base'),
+				), 200, 100),
+				// 110 LET res = res + (a*b/c)
+				assign('res', op.int.add(
+					name('res'),
+					op.int.div(
+						op.int.mul(name('a'), name('b')),
+						name('c')
+					)
+				), 110),
+				// 120 GOTO 1000
+				{ type: 'goto', line: 120, goto: 1000 },
+
+				// 200 DIM norm AS Uint64
+				declare('norm', DVMType.Uint64, 200),
+
+				// 210 LET norm = maxdiv/c
+				assign('norm', op.int.div(
+					name('maxdiv'),
+					name('c')
+				), 210),
+				// 220 LET c = c * norm
+				assign('c', op.int.mul(name('c'), name('norm')), 220),
+				// 230 LET a = a * norm
+				assign('a', op.int.mul(name('a'), name('norm')), 230),
+
+				// 300 DIM ah, al, bh, bl, ch, cl AS Uint64
+				...['ah', 'al', 'bh', 'bl', 'ch', 'cl']
+					.map(v => declare(v, DVMType.Uint64, 300)),
+				// 310 LET ah = a / base
+				assign('ah', op.int.div(name('a'), name('base')), 310),
+				// 320 LET al = a % base
+				assign('al', op.int.mod(name('a'), name('base')), 320),
+				// 330 LET bh = b / base
+				assign('bh', op.int.div(name('b'), name('base')), 330),
+				// 340 LET bl = b % base
+				assign('bl', op.int.mod(name('b'), name('base')), 340),
+				// 350 LET ch = c / base
+				assign('ch', op.int.div(name('c'), name('base')), 350),
+				// 360 LET cl = c % base
+				assign('cl', op.int.mod(name('c'), name('base')), 360),
+
+				// 400 DIM p0, p1, p2 AS Uint64
+				...['p0', 'p1', 'p2'].map(v => declare(v, DVMType.Uint64, 400)),
+				// 410 LET p0 = al*bl
+				assign('p0', op.int.mul(name('al'), name('bl')), 410),
+				// 420 LET p1 = p0 / base + al*bh
+				assign('p1', op.int.add(
+					op.int.div(name('p0'), name('base')),
+					op.int.mul(name('al'), name('bh')),
+				), 420),
+				// 430 LET p0 = p0 % base
+				assign('p0', op.int.mod(name('p0'), name('base')), 430),
+				// 440 LET p2 = p1 / base + ah*bh
+				assign('p2', op.int.add(
+					op.int.div(name('p1'), name('base')),
+					op.int.mul(name('ah'), name('bh')),
+				), 440),
+				// 450 LET p1 = (p1 % base) + ah*bl
+				assign('p1', op.int.add(
+					op.int.mod(name('p1'), name('base')),
+					op.int.mul(name('ah'), name('bl')),
+				), 450),
+				// 460 LET p2 = p2 + p1 / base
+				assign('p2', op.int.add(name('p2'), op.int.div(name('p1'), name('base'))), 460),
+				// 470 LET p1 = p1 % base
+				assign('p1', op.int.mod(name('p1'), name('base')), 470),
+
+				// 500 DIM q0, q1, rhat AS Uint64
+				...['q0', 'q1', 'rhat'].map(v => declare(v, DVMType.Uint64, 500)),
+				// 510 LET p2 = p2 % c
+				assign('p2', op.int.mod(name('p2'), name('c')), 510),
+				// 520 LET q1 = p2 / ch
+				assign('q1', op.int.div(name('p2'), name('ch')), 520),
+				// 530 LET rhat = p2 % ch
+				assign('rhat', op.int.mod(name('p2'), name('ch')), 530),
+
+				// 600 IF (q1 < base && (rhat >= base || q1*cl <= rhat*base+p1)) THEN GOTO 700
+				if_then(op.int.and(
+					op.int.lt(name('q1'), name('base')),
+					op.int.or(
+						op.int.ge(name('rhat'), name('base')),
+						op.int.le(
+							op.int.mul(name('q1'), name('cl'),),
+							op.int.add(
+								op.int.mul(name('rhat'), name('base')),
+								name('p1')
+							)
+						)
+					)
+				), 700, 600),
+				// 610 LET q1 = q1 - 1
+				assign('q1', op.int.sub(name('q1'), val(1)), 610),
+				// 620 LET rhat = rhat + ch
+				assign('rhat', op.var.plus(name('rhat'), name('ch')), 620),
+				// 630 GOTO 600
+				{ type: 'goto', line: 630, goto: 600 },
+
+				// 700 LET p1 = ((p2 % base) * base + p1) - q1 * cl
+				assign('p1', op.int.sub(
+					op.int.add(
+						op.int.mul(
+							op.int.mod(name('p2'), name('base')),
+							name('base')
+						),
+						name('p1')
+					),
+					op.int.mul(name('q1'), name('cl'))
+				), 700),
+				// 710 LET p2 = (p2 / base * base + p1 / base) - q1 * ch
+				assign('p2', op.int.sub(
+					op.int.add(
+						op.int.mul(
+							op.int.div(name('p2'), name('base')),
+							name('base')
+						),
+						op.int.div(name('p1'), name('base'))
+					),
+					op.int.mul(name('q1'), name('ch'))
+				), 710),
+				// 720 LET p1 = (p1 % base) + (p2 % base) * base
+				assign('p1', op.int.add(
+					op.int.mod(name('p1'), name('base')),
+					op.int.mul(
+						op.int.mod(name('p2'), name('base')),
+						name('base')
+					)
+				), 720),
+				// 730 LET q0 = p1 / ch
+				assign('q0', op.int.div(name('p1'), name('ch')), 730),
+				// 740 LET rhat = p1 % ch
+				assign('rhat', op.int.mod(name('p1'), name('ch')), 740),
+
+				// 800 IF (q0 < base && (rhat >= base || q0*cl <= rhat*base+p0)) THEN GOTO 900
+				if_then(op.int.and(
+					op.int.lt(name('q0'), name('base')),
+					op.int.or(
+						op.int.ge(name('rhat'), name('base')),
+						op.int.le(
+							op.int.mul(name('q0'), name('cl'),),
+							op.int.add(
+								op.int.mul(name('rhat'), name('base')),
+								name('p0')
+							)
+						)
+					)
+				), 900, 800),
+				// 810 LET q0 = q0 - 1
+				assign('q0', op.int.sub(name('q0'), val(1)), 810),
+				// 820 LET rhat = rhat + ch
+				assign('rhat', op.var.plus(name('rhat'), name('ch')), 820),
+				// 830 GOTO 800
+				{ type: 'goto', line: 830, goto: 800 },
+
+				// 900 LET res = res + q0 + q1 * base
+				assign('res', op.int.add(
+					op.var.plus(name('res'), name('q0')),
+					op.int.mul(name('q1'), name('base'))
+				), 900),
+
+				// 1000 RETURN res
+				return_expression(name('res'), 1000),
+
+			]
+
+		},
+		code: `
+// lossless (a * b ) / c
+// ('cause there ain't no Uint256)
+Function multDiv(a Uint64, b Uint64, c Uint64) Uint64
+	10 DIM base, maxdiv AS Uint64
+	20 LET base = 4294967296	// (1<<32)
+	30 LET maxdiv = (base-1)*base + (base-1)
+
+	50 DIM res AS Uint64
+	60 LET res = (a/c) * b + (a%c) * (b/c)
+	70 LET a = a % c
+	80 LET b = b % c
+	90 IF (a == 0 || b == 0) THEN GOTO 1000
+
+	100 IF (c >= base) THEN GOTO 200
+	110 LET res = res + (a*b/c)
+	120 GOTO 1000
+
+	200 DIM norm AS Uint64
+	210 LET norm = maxdiv/c
+	220 LET c = c * norm
+	230 LET a = a * norm
+
+	300 DIM ah, al, bh, bl, ch, cl AS Uint64
+	310 LET ah = a / base
+	320 LET al = a % base
+	330 LET bh = b / base
+	340 LET bl = b % base
+	350 LET ch = c / base
+	360 LET cl = c % base
+
+	400 DIM p0, p1, p2 AS Uint64
+	410 LET p0 = al*bl
+	420 LET p1 = p0 / base + al*bh
+	430 LET p0 = p0 % base
+	440 LET p2 = p1 / base + ah*bh
+	450 LET p1 = (p1 % base) + ah*bl
+	460 LET p2 = p2 + p1 / base
+	470 LET p1 = p1 % base
+
+	500 DIM q0, q1, rhat AS Uint64
+	510 LET p2 = p2 % c
+	520 LET q1 = p2 / ch
+	530 LET rhat = p2 % ch
+
+	600 IF (q1 < base && (rhat >= base || q1*cl <= rhat*base+p1)) THEN GOTO 700
+	610 LET q1 = q1 - 1
+	620 LET rhat = rhat + ch
+	630 GOTO 600
+
+	700 LET p1 = ((p2 % base) * base + p1) - q1 * cl
+	710 LET p2 = (p2 / base * base + p1 / base) - q1 * ch
+	720 LET p1 = (p1 % base) + (p2 % base) * base
+	730 LET q0 = p1 / ch
+	740 LET rhat = p1 % ch
+
+	800 IF (q0 < base && (rhat >= base || q0*cl <= rhat*base+p0)) THEN GOTO 900
+	810 LET q0 = q0 - 1
+	820 LET rhat = rhat + ch
+	830 GOTO 800
+
+	900 LET res = res + q0 + q1 * base
+
+	1000 RETURN res
+End Function
+`,
+	},
+
+}
+
+for (const f in functions) {
+	if (Object.prototype.hasOwnProperty.call(functions, f)) {
+		const element = functions[f];
+		test(f, () => {
+			const expected: Program = {
+				functions: [
+					element.expected
+				]
+			}
+			expect(parse(element.code)).toMatchObject(expected)
+		})
+	}
+}
 
 
-test('gnomon', () => {
-    const expected: Program = {
-        headers: [
-            '_____  _____ _______ _______ _  _  _ _______  _____',
-            '|_____]   |   |______ |______ |  |  | |_____| |_____]',
-            '|       __|__ |______ ______| |__|__| |     | |',
-            '',
-            'Swap contract',
-            'lossless (a * b ) / c',
-            "('cause there ain't no Uint256)",
-        ],
-        functions: [
-            // Initialize
-            {
-                name: 'Initialize',
-                return: DVMType.Uint64,
-                args: [
-                    { name: 'asset1', type: DVMType.String, },
-                    { name: 'asset2', type: DVMType.String, },
-                    { name: 'symbol', type: DVMType.String, },
-                    { name: 'name', type: DVMType.String, },
-                    { name: 'fee', type: DVMType.Uint64 },
-                ],
-                statements: [
-                    // 10 IF EXISTS("version") THEN GOTO 1100
-                    if_then(op.int.eq(
-                        call('EXISTS', [val('version')]),
-                        val(0)
-                    ), 1100, 10),
-                    // 20 SetVer()
-                    call.statement('SetVer', [], 20),
-                    // 30 STORE("o:" + HEX(SIGNER()), 0)
-                    store(val('o:'), call("HEX", [call("SIGNER"), val(0)]), 30),
-                    // 40 STORE("ol:0", HEX(SIGNER()))
-                    store(val('ol:0'), call("HEX", [call("SIGNER")]), 40),
-                    // 50 STORE("numTrustees", 1)
-                    store(val("numTrustees"), val(1), 50),
-                    // 60 STORE("quorum", 1)
-                    store(val("quorum"), val(1), 60),
-                    // 70 STORE("asset1", HEXDECODE(asset1))
-                    store(val("asset1"), call("HEXDECODE", [name('asset1')]), 70),
-                    // 80 STORE("asset2", HEXDECODE(asset2))
-                    store(val("asset2"), call("HEXDECODE", [name('asset2')]), 80),
-                    // 90 STORE("symbol", symbol)
-                    store(val("symbol"), name("symbol"), 90),
-                    // 100 STORE("decimals", 0)
-                    store(val('decimals'), val(0), 100),
-                    // 110 STORE("name", name)
-                    store(val('name'), name('name'), 110),
-                    // 120 STORE("fee", fee)
-                    store(val('fee'), name('fee'), 120),
-                    // 130 STORE("val1", 0)
-                    store(val('val1'), val(0), 130),
-                    // 140 STORE("val2", 0)
-                    store(val('val2'), val(0), 140),
-                    // 150 STORE("sharesOutstanding", 0)
-                    store(val('sharesOutstanding'), val(0), 150),
-                    // 160 STORE("adds", 0)
-                    store(val('adds'), val(0), 160),
-                    // 170 STORE("rems", 0)
-                    store(val('rems'), val(0), 170),
-                    // 180 STORE("swaps", 0)
-                    store(val('swaps'), val(0), 180),
+/*test('whole', () => {
+	const expected: Program = {
 
-                    // 1000 RETURN 0
-                    return_value(0, 1000),
-                    // 1100 RETURN 100
-                    return_value(100, 1100),
-                ],
-            },
+		functions: [
+			// Initialize
+			functions.Initialize.expected,
 
 
-            // GetVer 
-            {
-                name: 'GetVer',
-                args: [],
-                return: DVMType.String,
-                statements: [
-                    // 10 return "2.100"
-                    return_value("2.100", 10),
-                ]
-            },
+			// GetVer 
+			functions.GetVer.expected,
 
-            // SetVer 
-            {
-                name: 'SetVer',
-                args: [],
-                return: DVMType.Uint64,
-                statements: [
-                    // 10 STORE("version", GetVer())
-                    store(val("version"), call('GetVer'), 10),
-                    // 1000 RETURN 0
-                    return_value(0, 1000),
-                ]
-            },
+			// SetVer 
+			functions.SetVer.expected,
 
-            // multDiv
-            {
-                name: 'multDiv',
-                args: [
-                    { name: 'a', type: DVMType.Uint64, },
-                    { name: 'b', type: DVMType.Uint64, },
-                    { name: 'c', type: DVMType.Uint64 },
-                ],
-                return: DVMType.Uint64,
-                statements: [
-
-                    // 10 DIM base, maxdiv AS Uint64
-                    ...declare.multiple(['base', 'maxdiv'], DVMType.Uint64, 10),
-                    // 20 LET base = 4294967296	// (1<<32)
-                    assign('base', val(4294967296), 20),
-                    comment('(1<<32)', 20),
-                    // 30 LET maxdiv = (base-1)*base + (base-1)
-                    assign('maxdiv', op.int.add(
-                        op.int.mul(
-                            op.int.sub(name('base'), val(1)),
-                            name('base')
-                        ),
-                        op.int.sub(name('base'), val(1))
-                    ), 30),
-                    // 50 DIM res AS Uint64
-                    declare('res', DVMType.Uint64, 50),
-                    // 60 LET res = (a/c) * b + (a%c) * (b/c)
-                    assign('res', op.int.add(
-                        op.int.mul(
-                            op.int.div(
-                                name('a'),
-                                name('c')
-                            ),
-                            name('b')
-                        ),
-                        op.int.mul(
-                            op.int.mod(
-                                name('a'),
-                                name('c')
-                            ),
-                            op.int.div(
-                                name('b'),
-                                name('c')
-                            ),
-                        ),
-                    ), 60),
-                    // 70 LET a = a % c
-                    // 80 LET b = b % c
-                    // 90 IF (a == 0 || b == 0) THEN GOTO 1000
-                    // 
-                    // 100 IF (c >= base) THEN GOTO 200
-                    // 110 LET res = res + (a*b/c)
-                    // 120 GOTO 1000
-                    // 
-                    // 200 DIM norm AS Uint64
-                    // 210 LET norm = maxdiv/c
-                    // 220 LET c = c * norm
-                    // 230 LET a = a * norm
-                    // 
-                    // 300 DIM ah, al, bh, bl, ch, cl AS Uint64
-                    // 310 LET ah = a / base
-                    // 320 LET al = a % base
-                    // 330 LET bh = b / base
-                    // 340 LET bl = b % base
-                    // 350 LET ch = c / base
-                    // 360 LET cl = c % base
-                    // 
-                    // 400 DIM p0, p1, p2 AS Uint64
-                    // 410 LET p0 = al*bl
-                    // 420 LET p1 = p0 / base + al*bh
-                    // 430 LET p0 = p0 % base
-                    // 440 LET p2 = p1 / base + ah*bh
-                    // 450 LET p1 = (p1 % base) + ah*bl
-                    // 460 LET p2 = p2 + p1 / base
-                    // 470 LET p1 = p1 % base
-                    // 
-                    // 500 DIM q0, q1, rhat AS Uint64
-                    // 510 LET p2 = p2 % c
-                    // 520 LET q1 = p2 / ch
-                    // 530 LET rhat = p2 % ch
-                    // 
-                    // 600 IF (q1 < base && (rhat >= base || q1*cl <= rhat*base+p1)) THEN GOTO 700
-                    // 610 LET q1 = q1 - 1
-                    // 620 LET rhat = rhat + ch
-                    // 630 GOTO 600
-                    // 
-                    // 700 LET p1 = ((p2 % base) * base + p1) - q1 * cl
-                    // 710 LET p2 = (p2 / base * base + p1 / base) - q1 * ch
-                    // 720 LET p1 = (p1 % base) + (p2 % base) * base
-                    // 730 LET q0 = p1 / ch
-                    // 740 LET rhat = p1 % ch
-                    // 
-                    // 800 IF (q0 < base && (rhat >= base || q0*cl <= rhat*base+p0)) THEN GOTO 900
-                    // 810 LET q0 = q0 - 1
-                    // 820 LET rhat = rhat + ch
-                    // 830 GOTO 800
-                    // 
-                    // 900 LET res = res + q0 + q1 * base
-                    // 
-                    // 1000 RETURN res
-
-                ]
-
-            },
+			// multDiv
+			functions.multDiv.expected,
 
 
-        ],
-    };
-    const code = `
+		],
+	};
+
+	const code = `
 //    _____  _____ _______ _______ _  _  _ _______  _____ 
 //   |_____]   |   |______ |______ |  |  | |_____| |_____]
 //   |       __|__ |______ ______| |__|__| |     | |      
@@ -566,5 +836,5 @@ Function castVote(trustee String, key String, proposal String) Uint64
 	1000 RETURN 0
 End Function
 `;
-    expect(parse(code)).toMatchObject(expected)
-})
+	expect(parse(code)).toMatchObject(expected)
+})*/

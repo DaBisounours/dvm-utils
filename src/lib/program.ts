@@ -1,484 +1,46 @@
 
 //@ts-ignore
 import * as ohm from 'ohm-js';
-import { Node as OhmNode } from 'ohm-js';
-import { Argument, BinaryOperator, BitwiseOperator, CalcCommonOperator, CalcOperator, DVMType, Expression, FunctionHeader, FunctionType, LogicalOperator, Operator, Program, Statement, StatementDefinition } from '../types/program';
+import { BitwiseOperator, CalcOperator, DVMType, Expression, FunctionHeader, FunctionType, LogicalOperator, Operator, Program, Statement, StatementDefinition } from '../types/program';
 import p from './grammar/program.ohm';
-import p2 from './grammar/program.v2.ohm';
-import { call, if_then, name, op } from './build';
 
 export const ProgramGrammar = ohm.grammar(p);
-export const ProgramGrammarV2 = ohm.grammar(p2);
 
-export const defaultSemantics = ProgramGrammar.createSemantics();
-/*
-defaultSemantics.addOperation('eval', {
 
-    Program(p) {
-        // Evaluate program and return
-
-        const program = p.eval()
-        //console.warn({ program });
-        //console.dir({ program }, { depth: null });
-        return program
-    },
-
-    Program_function(p, f) {
-        // Evaluate parsed function declaration f
-        const _function = f.eval()
-
-        // Evaluate program if any created yet
-        if (p.numChildren > 0) {
-            const child = p.children[0];
-            let program = child.eval();
-            program.functions.push(_function);
-            return program;
-        }
-
-        // or return initial one
-        return { headers: [], functions: [_function] }
-    },
-
-    Program_comment(p, c) {
-        // Evaluate parsed comment c
-        const comment = c.eval().comment
-
-        // Evaluate program if any created yet
-        if (p.numChildren > 0) {
-            const child = p.children[0];
-            let program = child.eval();
-            program.headers.push(comment);
-            return program;
-        }
-
-        // or return initial one
-        return { headers: [comment], functions: [] }
-    },
-
-    singleLineComment: (_, c): StatementDefinition => (
-        { type: 'comment', comment: c.sourceString.trim() }
-    ),
-
-    multilineComment: (_, c, ___): StatementDefinition => (
-        { type: 'comment', comment: c.sourceString.trim() }
-    ),
-
-    FunctionDeclaration(c, h, b, _, __): FunctionType {
-        const statements = b.eval()
-        return {
-            ...h.eval(),
-            statements
-        }
-    },
-
-    FunctionHeader: (_, n, __, a, ___, t): FunctionHeader => ({
-        name: n.eval(),
-        args: a.eval(),
-        return: DVMType[t.sourceString as keyof typeof DVMType]
-    }),
-
-    FunctionName: (ident) => ident.sourceString,
-
-    FunctionArgs: (l): Argument[] => l
-        .asIteration()
-        .children
-        .map(child => child.eval()),
-
-    argumentDefinition: (n, _, t): Argument => ({
-        name: n.sourceString,
-        type: DVMType[t.sourceString as keyof typeof DVMType]
-    }),
-
-    FunctionBody(l_c): Statement[] {
-        let lastLine = 0;
-        const body: Statement[] = l_c.children.flatMap(child => {
-
-            let bodyElement = child.eval()
-
-            // Evaluated element might produce multiple statements
-            if (bodyElement.length) {
-                bodyElement = bodyElement.map(e => {
-                    if (e.line === undefined) {
-                        return { ...e, line: lastLine }
-                    } else {
-                        // Update last line
-                        lastLine = e.line
-                        return e;
-                    }
-                });
-            }
-
-            // Evaluated element already is already a statement
-            if (bodyElement.line !== undefined) {
-                // Update last line
-                lastLine = bodyElement.line;
-            }
-
-            // Evaluated element is a statement definition / expression only
-            if (bodyElement.type !== undefined) {
-                return { line: lastLine, ...bodyElement };
-            }
-
-            // last line by default, else 0 if no line has been declared
-            return bodyElement.map(e => ({ line: lastLine, ...e }));
-        })
-        return body
-    },
-
-
-    Line(c1, n, c2, s, c3): StatementDefinition[] {
-        const line = Number(n.sourceString);
-
-        // Line might have comments in between line elements // TODO redefine "spaces" to embed comments ? Will make parsing a line simpler
-        const commentStatements1 = [c1].flatMap(evalComment).filter(c => c);
-        const commentStatements23 = [c2, c3].flatMap(evalComment).filter(c => c);
-
-        let statementDefinitions: StatementDefinition[];
-        if (s.numChildren) {
-            const evaluated = s.children[0].eval();
-            statementDefinitions = 'length' in evaluated ? evaluated : [evaluated];
-        } else {
-            // Comments only
-            statementDefinitions = [{ type: 'no-op' }]
-        }
-
-        // Build statement list
-        const statements = statementDefinitions.map(s => ({ line, ...s }))
-        // Return list with comments in order
-        return [...commentStatements1, ...statements, ...commentStatements23];
-
-        function evalComment(c) {
-
-            if (c.numChildren) {
-                let subChildren = []
-
-                for (let cIndex = 0; cIndex < c.numChildren; cIndex++) {
-                    const subChild = c.children[cIndex];
-                    subChildren.push(subChild.eval())
-                }
-                return subChildren
-            }
-            return null;
-        }
-    },
-
-    ReturnStatement: (_, e): StatementDefinition => ({
-        type: 'return',
-        expression: e.eval()
-    }),
-
-    ConditionStatement(_, ce, __, g, e): StatementDefinition {
-        const condition = ce.eval()
-
-        const then = { then: g.eval() }
-        const hasElse = e.numChildren
-
-
-        let statementDefinition//: StatementDefinition;
-        if (hasElse) {
-            const _else = { else: e.children[0].eval() }
-            statementDefinition = if_then.else(condition, then.then, _else.else)
-        } else {
-            statementDefinition = if_then(condition, then.then)
-        }
-        delete statementDefinition.line;
-
-        return statementDefinition;
-    },
-
-    ExpStatement: (e): StatementDefinition => ({
-        type: 'expression',
-        expression: e.eval(),
-    }),
-
-    Else: (_, g) => g.eval(),
-
-    Goto: (_, n) => Number(n.sourceString),
-
-    DimStatement(_, l, t): StatementDefinition[] {
-        const names = l.asIteration().children.map(c => c.sourceString);
-
-        const statements = names.map(name => {
-            const statementDefinition: StatementDefinition = {
-                type: 'dim',
-                declare: {
-                    name,
-                    type: DVMType[t.sourceString as keyof typeof DVMType],
-                }
-            }
-            return statementDefinition;
-        })
-        return statements;
-    },
-
-
-    LetStatement: (_, n, __, e): StatementDefinition => ({
-        type: 'let',
-        assign: {
-            name: n.sourceString,
-            expression: e.eval(),
-        },
-    }),
-
-    FuncExp: (n, _, a, __) => call(n.sourceString, a.eval()),
-
-    FuncArguments: (l) => l
-        .asIteration()
-        .children
-        .map(a => (a.eval())),
-
-    // cases when identifier comes first
-
-    IdentFirstExp_unknown(n, c, e) {
-        const operator = c.sourceString == '+' ? {
-            type: 'calc' as const,
-            calc: '+' as const,
-        } : {
-            type: 'logical' as const,
-            logical: c.sourceString as "==" | "!=" | ">" | "<" | ">=" | "<="
-        }
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator,
-            operands: [
-                { type: 'name', name: n.sourceString },
-                { type: 'name', name: e.sourceString },
-            ],
-            operationType: DVMType.unknown
-        }
-        return expression
-    },
-
-
-    IdentFirstExp_intCmp(n, c, e) {
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator: {
-                type: 'logical',
-                logical: c.sourceString as "==" | "!=" | ">" | "<" | ">=" | "<="
-            },
-            operands: [
-                { type: 'name', name: n.sourceString },
-                e.eval(),
-            ],
-            operationType: DVMType.Uint64
-        }
-        return expression
-    },
-
-    IdentFirstExp_strCmp(n, c, e) {
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator: {
-                type: 'logical',
-                logical: c.sourceString as "==" | "!="
-            },
-            operands: [
-                { type: 'name', name: n.sourceString },
-                e.eval(),
-            ],
-            operationType: DVMType.String
-        }
-        return expression
-    },
-
-    IdentFirstExp_strCct: (n, c, e) => op.str.concat(
-        name(n.sourceString),
-        e.eval()
-    ),
-
-    IdentFirstExp_unknownFunc(n, o, f) {
-        const operator = o.sourceString == '+' ? {
-            type: 'calc' as const,
-            calc: '+' as const,
-        } : {
-            type: 'logical' as const,
-            logical: o.sourceString as "==" | "!="
-        }
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator,
-            operands: [{ type: 'name', name: n.sourceString }, f.eval()],
-            operationType: DVMType.unknown
-        }
-        return expression
-    },
-
-    FuncFirstExp_unknown(f1, o, f2) {
-        const operator = o.sourceString == '+' ? {
-            type: 'calc' as const,
-            calc: '+' as const,
-        } : {
-            type: 'logical' as const,
-            logical: o.sourceString as "==" | "!="
-        }
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator,
-            operands: [f1.eval(), f2.eval()],
-            operationType: DVMType.unknown
-        }
-        return expression
-    },
-
-    FuncFirstExp_unknownIdent(f, o, n) {
-        const operator = o.sourceString == '+' ? {
-            type: 'calc' as const,
-            calc: '+' as const,
-        } : {
-            type: 'logical' as const,
-            logical: o.sourceString as "==" | "!="
-        }
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator,
-            operands: [f.eval(), { type: 'name', name: n.sourceString }],
-            operationType: DVMType.unknown
-        }
-        return expression
-    },
-
-    FuncFirstExp_strCmp(f, c, e) {
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator: {
-                type: 'logical',
-                logical: c.sourceString as "==" | "!="
-            },
-            operands: [
-                f.eval(),
-                e.eval(),
-            ],
-            operationType: DVMType.String
-        }
-        return expression
-    },
-
-    FuncFirstExp_intCmp(f, c, e) {
-        const expression: Expression<DVMType> = {
-            type: 'operation',
-            operator: {
-                type: 'logical',
-                logical: c.sourceString as "==" | "!=" | ">" | "<" | ">=" | "<="
-            },
-            operands: [
-                f.eval(),
-                e.eval(),
-            ],
-            operationType: DVMType.Uint64
-        }
-        return expression
-    },
-
-    StrCmpExp_cmp(e, c, cct) {
-        const strComp: Expression<DVMType> = {
-            type: 'operation',
-            operands: [e.eval(), cct.eval()],
-            operator: {
-                type: 'logical',
-                logical: c.sourceString as '==' | '!='
-            },
-            operationType: DVMType.String
-        }
-        return strComp;
-    },
-
-    StrCctExp_concat: strCalc,
-    StrCctStrictExp_concat: strCalc,
-
-    StrPriExp_name: (n): Expression<DVMType> => ({
-        type: 'name', name: n.sourceString
-    }),
-
-
-    IntCmpExp_cmp(e, c, bs) {
-        const intComp: Expression<DVMType> = {
-            type: 'operation',
-            operands: [e.eval(), bs.eval()],
-            operator: {
-                type: 'logical',
-                logical: c.sourceString as '==' | '!=' | '>' | '<' | '>=' | '<='
-            },
-            operationType: DVMType.Uint64
-        }
-        return intComp;
-    },
-
-
-    IntBinXOrExp_xor: intCalc,
-    IntBinOrExp_or: intCalc,
-    IntBinAndExp_and: intCalc,
-    IntBinSftExp_left: intCalc,
-    IntBinSftExp_right: intCalc,
-
-    IntModExp_mod: intCalc,
-
-    IntAddSubExp_add: intCalc,
-    IntAddSubExp_sub: intCalc,
-    IntMulDivExp_mul: intCalc,
-    IntMulDivExp_div: intCalc,
-
-    IntPriExp_not(_, p) {
-        const not: Expression<DVMType> = {
-            type: 'operation',
-            operands: [p.eval()],
-            operator: {
-                type: 'bitwise',
-                bitwise: '!'
-            },
-            operationType: DVMType.Uint64,
-        }
-        return not
-    },
-
-
-    IntPriExp_intPparenthesis: parenthesisCalc,
-    IntPriExp_strParenthesis: parenthesisCalc,
-    IntPriExp_name(n) {
-        return { type: 'name', name: n.sourceString }
-    },
-
-
-
-    number: (n): Expression<DVMType.Uint64> => ({
-        type: 'value',
-        value: Number(n.sourceString)
-    }),
-
-    string: (_, s, __): Expression<DVMType.String> => ({
-        type: 'value',
-        value: s.sourceString
-    }),
-
-})
-*/
-
-export const semantics = ProgramGrammarV2.createSemantics();
+export const semantics = ProgramGrammar.createSemantics();
 
 semantics.addOperation('eval', {
     Program(fd) {
-        const comments = fd.comments();
-        console.warn(comments);
-
         const functions: FunctionType[] =
             mapStarRule<FunctionType>(fd, child => child.eval())
         const program: Program = { functions }
-
         return program as any;// make compiler happy
     },
 
 
-    FunctionDeclaration(_, h, b, __, ___): FunctionType {
-        const header: FunctionHeader = h.eval();
+    FunctionDeclaration(c1, _Function, c2, h, c3, b, _End, __Function): FunctionType {
+        const comments = parseComments(c1, c2, c3);
+
+        let header: FunctionHeader = h.eval();
+        header.comments = header.comments ? [...header.comments, ...comments] : comments;
         const statements: Statement[] = b.numChildren > 0 ? b.children[0].eval() : [];
         return { ...header, statements }
     },
 
-    FunctionHeader(n, _, a, __, t): FunctionHeader {
+    FunctionHeader(n, c1, _opParent, a, _clParent, c2, t): FunctionHeader {
+        let comments = parseComments(c1, c2);
+
         const name = n.sourceString;
         const args = a.eval();
+        const argsComments = a.comments().map((c, index) => `@arg=${args[index].name}:${c}`)
+        comments = [...comments, ...argsComments]
         const returnType = DVMType[t.sourceString as keyof typeof DVMType];
-        return { name, args, return: returnType }
+
+        if (comments.length > 0) {
+            return { name, args, comments, return: returnType }
+        } else {
+            return { name, args, return: returnType }
+        }
     },
 
     FunctionHeaderArguments: l =>
@@ -486,7 +48,7 @@ semantics.addOperation('eval', {
             .children
             .map(arg => arg.eval()),
 
-    FunctionHeaderArgument: (n, t) => ({
+    FunctionHeaderArgument: (_c1, n, _c2, t, _c3) => ({
         name: n.sourceString,
         type: DVMType[t.sourceString as keyof typeof DVMType]
     }),
@@ -495,28 +57,53 @@ semantics.addOperation('eval', {
         .filter(x => x != null)
         .flat(), // some lines produces multiple statements such as DIM
 
-    FunctionLine_withStatement(n, s): Statement | Statement[] {
+    FunctionLine_withStatement(n, c1, s, c2): Statement[] {
         const line = Number(n.sourceString);
         const _statements: StatementDefinition | StatementDefinition[]
             = s.eval();
-        if (_statements instanceof Array) {
-            return _statements.map(statement => ({ // array is flattened afterwards
-                line,
-                ...statement
-            }))
-        } else {
-            return {
-                line,
-                ..._statements
+        const comments = parseComments(c1, c2);
+
+        const commentStatements = comments.map(c => {
+            const commentStatementDefinition: StatementDefinition = {
+                type: 'comment', comment: c as string,
             }
+            return { line, ...commentStatementDefinition };
+        })
+
+        if (_statements instanceof Array) {
+            return [
+                ..._statements.map(statement => ({ // array is flattened afterwards
+                    line,
+                    ...statement
+                })),
+                ...commentStatements,
+            ]
+        } else {
+            return [
+                { line, ..._statements },
+                ...commentStatements,
+            ]
         }
 
     },
-    FunctionLine_emptyLine: (_) => null, // filtered
+    FunctionLine_emptyLine: (n, c): Statement[] | null => {
+        const line = Number(n.sourceString);
+        if (c.numChildren > 0) {
+            const comments = parseComments(c);
+
+            const commentStatements = comments.map(c => {
+                const commentStatementDefinition: StatementDefinition = {
+                    type: 'comment', comment: c as string,
+                }
+                return { line, ...commentStatementDefinition };
+            })
+            return commentStatements
+        } else return null;
+    }, // filtered
 
     // Statement Definitions
 
-    DeclarationStatement: (_, l, __, t): StatementDefinition[] => // array is flattened aftewards
+    DeclarationStatement: (_dim, l, _as, t): StatementDefinition[] => // array is flattened aftewards
         l.asIteration()
             .children
             .map((n => ({
@@ -527,12 +114,20 @@ semantics.addOperation('eval', {
                 }
             }))),
 
-    ReturnStatement: (_, e): StatementDefinition => ({
+    AssignmentStatement: (_let, n, _eq, e): StatementDefinition => ({
+        type: 'let',
+        assign: {
+            name: n.sourceString,
+            expression: e.eval(),
+        }
+    }),
+
+    ReturnStatement: (_return, e): StatementDefinition => ({
         type: 'return',
         expression: e.eval(),
     }),
 
-    BranchStatement: (_, e, __, g, el): StatementDefinition => {
+    BranchStatement: (_if, e, _then, g, el): StatementDefinition => {
         const _else = el.numChildren == 1 ? el.children[0].eval() : null;
         return {
             type: 'branch',
@@ -549,13 +144,17 @@ semantics.addOperation('eval', {
         }
     },
 
+
+    Goto: (_goto, l): number => Number(l.sourceString),
+
+    Else: (_else, g): number => g.eval(),
+
+    GotoStatement: (g): StatementDefinition => ({ type: 'goto', goto: g.eval() }),
+
     ExpressionStatement: (e): StatementDefinition => ({
         type: 'expression',
         expression: e.eval()
     }),
-
-    Goto: (_, l) => Number(l.sourceString),
-
     // Expression
 
     EqualityExpression_eq: genericOperation(logicalOperator),
@@ -580,7 +179,7 @@ semantics.addOperation('eval', {
     MultiplicativeExpression_mul: genericOperation(calcOperator),
     MultiplicativeExpression_div: genericOperation(calcOperator),
 
-    UnaryIntExpression_not: (_, e): Expression<DVMType> => ({
+    UnaryIntExpression_not: (_not, e): Expression<DVMType> => ({
         type: 'operation',
         operands: [e.eval()],
         operationType: DVMType.Uint64,
@@ -590,7 +189,7 @@ semantics.addOperation('eval', {
         }
     }),
 
-    PrimaryExpression_call: (n, _, al, __): Expression<DVMType> => ({
+    PrimaryExpression_call: (n, _opParent, al, _clParent): Expression<DVMType> => ({
         type: 'function',
         function: {
             name: n.sourceString,
@@ -601,18 +200,15 @@ semantics.addOperation('eval', {
     }),
 
     PrimaryExpression_name: (n): Expression<DVMType> => ({ type: 'name', name: n.sourceString }),
+    PrimaryExpression_parenthesis: (_opParent, e, _clParent) => e.eval(),
 
     // Base
-    space: (s) => {
-        console.log(s.ctorName);
-    },
-
     number: (n): Expression<DVMType.Uint64> => ({
         type: 'value',
         value: Number(n.sourceString)
     }),
 
-    string: (_, s, __): Expression<DVMType.String> => ({
+    string: (_dq, s, __dq): Expression<DVMType.String> => ({
         type: 'value',
         value: s.sourceString
     }),
@@ -620,35 +216,26 @@ semantics.addOperation('eval', {
 
 })
 
+
 semantics.addOperation('comments', {
-    _iter() {
-        let iter = []
-        for (let index = 0; index < arguments.length; index++) {
-            const child = arguments[index];
-            iter.push(child.comments())
-        }
-        return iter;
-    },
-    _nonterminal() {
-        let iter = [];
-        for (let index = 0; index < arguments.length; index++) {
-            const child = arguments[index];
-            iter.push(child.comments())
-        }
-        return iter;
-    },
-    
-    
-    space: (s) => {
-        console.log(s);
-        
-        return s.eval()
-    },
-    comment: (c) => {
-        console.log(c.sourceString);
-        
-    }
+    FunctionHeaderArguments: l =>
+        l.asIteration()
+            .children
+            .map(arg => arg.comments())
+            .filter(x => x.length > 0),
+    FunctionHeaderArgument: (c1, _n, c2, _t, c3) => parseComments(c1, c2, c3),
+
 })
+
+function parseComments(...args: any[]) {
+    return args.flatMap(cArg => cArg.children.map(c => cleanComment(c.sourceString))).filter(x => x.length > 0)
+}
+
+function cleanComment(c: string) {
+    return c.startsWith('/*')
+        ? c.slice(2, c.length - 2).trim()
+        : c.slice(2).trim()
+}
 
 function mapStarRule<T = any>(rule, callback: (child: ohm.Node, index: number) => T): T[] {
     let result = []
@@ -711,7 +298,7 @@ function genericOperation(_operator: (_) => Operator<DVMType>) {
         const operands = [left, right];
         let finalOperationType = guessedOperationType;
         if (guessedOperationType == DVMType.unknown) {
-            console.log({ left, right });
+            //console.log({ left, right });
             //! // TODO Check if the use case is actually simpler to solve
             // direct guess by operand value or operation type
             operands.forEach(operand => {

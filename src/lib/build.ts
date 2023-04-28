@@ -83,7 +83,9 @@ function _op(
             operator = { type: 'calc' as const, calc: o };
             break;
         case '&':
+        case '&&':
         case '|':
+        case '||':
         case '^':
         case '!':
         case '<<':
@@ -127,8 +129,10 @@ export const op = {
         div: _op('/', DVMType.Uint64),
         mod: _op('%', DVMType.Uint64),
         xor: _op('^', DVMType.Uint64),
-        and: _op('&', DVMType.Uint64),
-        or: _op('|', DVMType.Uint64),
+        and: _op('&&', DVMType.Uint64),
+        band: _op('&', DVMType.Uint64),
+        or: _op('||', DVMType.Uint64),
+        bor: _op('|', DVMType.Uint64),
         lsb: _op('<<', DVMType.Uint64),
         rsb: _op('>>', DVMType.Uint64),
         not: _op('!', DVMType.Uint64),
@@ -167,7 +171,7 @@ if_then.else = function (condition: Expression<DVMType>, then: number, _else: nu
 export function comment(text: string, line?: number): Statement {
     return { line, type: 'comment', comment: text }
 }
-
+/*
 export function noop(line: number): Statement {
     return { line, type: 'no-op' }
-}
+}*/

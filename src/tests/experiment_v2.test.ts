@@ -1,14 +1,14 @@
 
 import { test, expect } from '@jest/globals';
-import { parse } from '../../lib/parse';
-import { Program, DVMType } from '../../types/program';
-import { call, comment, declare, if_then, name, op, return_value, store, val } from '../../lib/build';
-import { ProgramGrammarV2, semantics } from '../../lib/program';
+import { parse } from '../lib/parse';
+import { Program, DVMType } from '../types/program';
+import { call, comment, declare, if_then, name, op, return_value, store, val } from '../lib/build';
+import { ProgramGrammar, semantics } from '../lib/program';
 
 
 test('experiment v2', () => {
 
-    const programParser = ProgramGrammarV2;
+    const programParser = ProgramGrammar;
 
     const code = `
 	/* Name Service SMART CONTRACT in DVM-BASIC.  
@@ -67,7 +67,7 @@ test('experiment v2', () => {
      End Function
     
 	`;
-	const expected: Program = {
+    const expected: Program = {
         /*headers: [`Name Service SMART CONTRACT in DVM-BASIC.  
     Allows a user to register names which could be looked by wallets for easy to use name while transfer`,
             'This function is used to initialize parameters during install time',
@@ -84,6 +84,11 @@ test('experiment v2', () => {
                 name: 'Initialize',
                 return: DVMType.Uint64,
                 args: [],
+                comments: [
+                    `Name Service SMART CONTRACT in DVM-BASIC.  
+    Allows a user to register names which could be looked by wallets for easy to use name while transfer`,
+                    `This function is used to initialize parameters during install time`
+                ],
                 statements: [
                     declare('test', DVMType.String, 5),
                     declare('testInt', DVMType.Uint64, 6),
@@ -97,6 +102,9 @@ test('experiment v2', () => {
                 return: DVMType.Uint64,
                 args: [
                     { name: 'name', type: DVMType.String },
+                ],
+                comments: [
+                    `Register a name, limit names of 5 or less length`,
                 ],
                 statements: [
                     if_then(op.str.eq(
@@ -141,6 +149,9 @@ test('experiment v2', () => {
                     { name: 'name', type: DVMType.String },
                     { name: 'newowner', type: DVMType.String },
                 ],
+                comments: [
+                    `This function is used to change owner of Name is an string form of address`,
+                ],
                 statements: [
                     if_then(op.var.ne(
                         call("LOAD", [name("name")]),
@@ -161,6 +172,9 @@ test('experiment v2', () => {
                 name: 'TransferSCOwnership',
                 args: [
                     { name: 'newowner', type: DVMType.String }
+                ],
+                comments: [
+                    `This function is used to change SC owner`,
                 ],
                 return: DVMType.Uint64,
                 statements: [
@@ -185,6 +199,9 @@ test('experiment v2', () => {
                 name: "ClaimSCOwnership",
                 return: DVMType.Uint64,
                 args: [],
+                comments: [
+                    `Until the new owner claims ownership, existing owner remains owner`,
+                ],
                 statements: [
                     //10  IF LOAD("own1") == SIGNER() THEN GOTO 30 
                     if_then(op.var.eq(call("LOAD", [val("own1")]), call("SIGNER")), 30, 10),
@@ -204,6 +221,10 @@ test('experiment v2', () => {
                 return: DVMType.Uint64,
                 args: [
                     { name: "SC_CODE", type: DVMType.String }
+                ],
+                comments: [
+                    `If signer is owner, provide him rights to update code anytime`,
+                    `make sure update is always available to SC`,
                 ],
                 statements: [
                     // 10  IF LOAD("owner") == SIGNER() THEN GOTO 30 

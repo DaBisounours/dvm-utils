@@ -31,7 +31,6 @@ test('name function check', () => {
                 ],
             },
         ],
-        headers: [],
     };
     console.dir({ expected }, { depth: null });
 
@@ -69,7 +68,6 @@ test('name not found', () => {
                 ],
             },
         ],
-        headers: [],
     };
     console.dir({ expected }, { depth: null });
 
@@ -106,7 +104,6 @@ test('name wrong function as var', () => {
                 ],
             },
         ],
-        headers: [],
     };
     console.dir({ expected }, { depth: null });
 
@@ -143,7 +140,6 @@ test('name wrong var as function', () => {
                 ],
             },
         ],
-        headers: [],
     };
     console.dir({ expected }, { depth: null });
 

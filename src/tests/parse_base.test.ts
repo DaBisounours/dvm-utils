@@ -15,7 +15,7 @@ test('empty', () => {
 test('no function', () => {
   const expected: Program = {
     functions: [],
-    headers: ['Some random comment without a Function'],
+    //headers: ['Some random comment without a Function'],
   };
   expect(parse(`// Some random comment without a Function`)).toMatchObject(expected)
 });
@@ -41,7 +41,7 @@ End Function`;
 
 test('header', () => {
   const expected: Program = {
-    headers: ['header', 'Singleline', 'Multiline'],
+    //headers: ['header', 'Singleline', 'Multiline'],
     functions: [
       {
         name: 'Initialize',
@@ -62,7 +62,7 @@ End Function`;
 
 test('arg', () => {
   const expected: Program = {
-    headers: ['arg'],
+    //headers: ['arg'],
     functions: [
       {
         name: 'Initialize',
@@ -85,15 +85,18 @@ End Function`;
 
 test('comment', () => {
   const expected: Program = {
-    headers: ['comment'],
+    //headers: ['comment'],
     functions: [
       {
         name: 'Initialize',
         return: DVMType.Uint64,
+        comments: [
+          'comment',
+          'Comment', 'Comment',
+        ],
         args: [],
         statements: [
-          comment("Comment", 0),
-          comment("Comment", 0),
+          comment("Comment after first line", 10)
         ],
       },
     ],
@@ -101,7 +104,8 @@ test('comment', () => {
   const code = `// comment
 Function Initialize() Uint64
   // Comment
-  /* Comment */  
+  /* Comment */
+  10 // Comment after first line
 End Function
     `;
   expect(parse(code)).toMatchObject(expected)

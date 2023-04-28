@@ -3,13 +3,13 @@ import { test, expect } from '@jest/globals';
 
 import { parse } from '../lib/parse';
 import { DVMType, Program, Statement } from '../types/program';
-import { assign, declare, return_value, val } from '../lib/build';
+import { assign, declare, op, return_expression, return_value, val } from '../lib/build';
 
 
 
 test('dim', () => {
     const expected: Program = {
-        headers: ['return'],
+        //headers: ['return'],
         functions: [
             {
                 name: 'Initialize',
@@ -27,9 +27,9 @@ test('dim', () => {
     const code = `// return
   Function Initialize() Uint64
     10 RETURN 0
-    100 DIM var Uint64
-    110 DIM var2 String
-    120 DIM var3, var4 Uint64
+    100 DIM var AS Uint64
+    110 DIM var2 AS String
+    120 DIM var3, var4 as Uint64
   End Function
       `;
     expect(parse(code)).toMatchObject(expected)
@@ -38,7 +38,7 @@ test('dim', () => {
 
 test('let', () => {
     const expected: Program = {
-        headers: ['return'],
+        //headers: ['return'],
         functions: [
             {
                 name: 'Initialize',
@@ -55,7 +55,7 @@ test('let', () => {
     const code = `// return
   Function Initialize() Uint64
     
-    100 DIM var Uint64
+    100 DIM var as Uint64
     110 LET var = 3
     120 RETURN 0
   End Function
@@ -66,7 +66,7 @@ test('let', () => {
 
 test('return', () => {
     const expected: Program = {
-        headers: ['return'],
+        //headers: ['return'],
         functions: [
             {
                 name: 'Initialize',
@@ -88,39 +88,42 @@ test('return', () => {
 
 test('string expression ==', () => {
     const expected: Program = {
-        headers: ['string expression =='],
+        //headers: ['string expression =='],
         functions: [
             {
                 name: 'Initialize',
                 return: DVMType.Uint64,
                 args: [],
                 statements: [
-                    {
+                    /*{
                         line: 100,
                         type: 'return',
                         expression: {
                             type: 'operation',
-                            operationType: DVMType.String,
+                            operationType: DVMType.Uint64,
                             operator: { type: 'logical', logical: '==' },
                             operands: [
                                 { type: 'value', value: 'a' },
                                 { type: 'value', value: 'a' },
                             ],
                         },
-                    },
-                    {
+                    },*/
+                    return_expression(op.str.eq(val('a'), val('a')), 100),
+
+                    /*{
                         line: 110,
                         type: 'return',
                         expression: {
                             type: 'operation',
-                            operationType: DVMType.String,
+                            operationType: DVMType.Uint64,
                             operator: { type: 'logical', logical: '!=' },
                             operands: [
                                 { type: 'value', value: 'a' },
                                 { type: 'value', value: 'a' },
                             ],
                         },
-                    },
+                    },*/
+                    return_expression(op.str.ne(val('a'), val('a')), 110),
                 ],
             },
         ],
@@ -136,7 +139,7 @@ test('string expression ==', () => {
 
 test('string expression calc', () => {
     const expected: Program = {
-        headers: ['string expression calc'],
+        //headers: ['string expression calc'],
         functions: [
             {
                 name: 'Initialize',
@@ -172,7 +175,7 @@ test('string expression calc', () => {
 
 test('int expression cmp', () => {
     const expected: Program = {
-        headers: ['int expression cmp'],
+        //headers: ['int expression cmp'],
         functions: [
             {
                 name: 'Initialize',
@@ -214,7 +217,7 @@ test('int expression cmp', () => {
 
 test('int expression calc', () => {
     const expected: Program = {
-        headers: ['int expression calc'],
+        //headers: ['int expression calc'],
         functions: [
             {
                 name: 'Initialize',
@@ -392,7 +395,7 @@ test('int expression calc', () => {
 
 test('bitwise expression calc / cmp', () => {
     const expected: Program = {
-        headers: ['int expression calc / cmp'],
+        //headers: ['int expression calc / cmp'],
         functions: [
             {
                 name: 'Initialize',

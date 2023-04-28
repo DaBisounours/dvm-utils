@@ -1,6 +1,6 @@
 import { DVMFunctions } from "../types/dvmfunctions";
 import { DVMType, Dim, Expression, Program } from "../types/program"
-import { ProgramGrammar, defaultSemantics } from "./program"
+import { ProgramGrammar, semantics } from "./program"
 
 
 /**
@@ -31,7 +31,7 @@ export const parse = (code: string): Program => {
     }
   }
 
-  let evaluated: Program = defaultSemantics(match).eval()
+  let evaluated: Program = semantics(match).eval()
   const context = getContext(evaluated);
   //console.dir({ context }, { depth: null });
 

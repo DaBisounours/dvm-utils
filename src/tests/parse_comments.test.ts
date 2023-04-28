@@ -3,19 +3,21 @@ import { test, expect } from '@jest/globals';
 
 import { parse } from '../lib/parse';
 import { DVMType, Program } from '../types/program';
-import { call, comment, noop } from '../lib/build';
+import { call, comment } from '../lib/build';
 
 
 test('inline comment', () => {
   const expected: Program = {
-    headers: ['inline comment'],
+    //headers: ['inline comment'],
     functions: [
       {
         name: 'Initialize',
         return: DVMType.Uint64,
         args: [],
+        comments: [
+          'inline comment'
+        ],
         statements: [
-          noop(10),
           comment('Comment // whatever /* Whatever */', 10),
           call.statement("EXISTS", [], 11),
           comment('Whatever //', 11),
@@ -36,18 +38,16 @@ End Function
 
 test('multiline comment', () => {
   const expected: Program = {
-    headers: ['multiline comment'],
+
     functions: [
       {
         name: 'Initialize',
         return: DVMType.Uint64,
         args: [],
+        comments: ['multiline comment', 'multi\nwithout line number'],
         statements: [
-          comment('multi\nwithout line number', 0),
-          noop(10),
           comment('Comment // whatever /* Whatever */', 10),
           comment('multi\n  line', 10),
-          noop(11),
           comment('Whatever //', 11),
           comment('Whatever*', 11),
         ],
