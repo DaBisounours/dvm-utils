@@ -32,7 +32,6 @@ test('name function check', () => {
             },
         ],
     };
-    console.dir({ expected }, { depth: null });
 
     const code = `Function Initialize() Uint64
     10  IF nameExists("owner") THEN GOTO 20 ELSE GOTO 100
@@ -69,7 +68,6 @@ test('name not found', () => {
             },
         ],
     };
-    console.dir({ expected }, { depth: null });
 
     const code = `Function Initialize() Uint64
     10  IF ${wrongName}("owner") THEN GOTO 20 ELSE GOTO 100
@@ -105,7 +103,6 @@ test('name wrong function as var', () => {
             },
         ],
     };
-    console.dir({ expected }, { depth: null });
 
     const code = `Function Initialize() Uint64
     10  IF EXISTS("owner") THEN GOTO 20 ELSE GOTO 100
@@ -141,7 +138,6 @@ test('name wrong var as function', () => {
             },
         ],
     };
-    console.dir({ expected }, { depth: null });
 
     const code = `Function Initialize(a String) Uint64
     10  IF EXISTS("owner") THEN GOTO 20 ELSE GOTO 100
