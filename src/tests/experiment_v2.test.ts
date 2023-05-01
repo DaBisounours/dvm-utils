@@ -1,9 +1,9 @@
 
 import { test, expect } from '@jest/globals';
-import { parse } from '../lib/parse';
+import { parse } from '../lib/main';
 import { Program, DVMType } from '../types/program';
 import { call, comment, declare, if_then, name, op, return_value, store, val } from '../lib/build';
-import { ProgramGrammar, semantics } from '../lib/program';
+import { ProgramGrammar, semantics } from '../lib/parse/program';
 
 
 test('experiment v2', () => {

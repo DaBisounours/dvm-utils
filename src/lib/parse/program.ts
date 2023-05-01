@@ -1,8 +1,8 @@
 
 //@ts-ignore
 import * as ohm from 'ohm-js';
-import { BitwiseOperator, CalcOperator, DVMType, Expression, FunctionHeader, FunctionType, LogicalOperator, Operator, Program, Statement, StatementDefinition } from '../types/program';
-import p from './grammar/program.ohm';
+import { BitwiseOperator, CalcOperator, DVMType, Expression, FunctionHeader, FunctionType, LogicalOperator, Operator, Program, Statement, StatementDefinition } from '../../types/program';
+import p from './program.ohm';
 
 export const ProgramGrammar = ohm.grammar(p);
 

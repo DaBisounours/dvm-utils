@@ -2,7 +2,7 @@
 import { test, expect } from '@jest/globals';
 
 
-import { evaluate } from '../lib/parse';
+import { evaluate } from '../lib/main';
 import { DVMType, Program } from '../types/program';
 
 import { return_value, store, name, val, call, op, if_then } from '../lib/build';

@@ -1,10 +1,11 @@
 import { DVMFunctions } from "../types/dvmfunctions";
 import { DVMType, Dim, Expression, Program } from "../types/program"
-import { ProgramGrammar, semantics } from "./program"
+import { ProgramGrammar, semantics } from "./parse/program"
 
 
 /**
- * Parses DVM-BASIC code
+ * Parses DVM-BASIC code: 
+ * Evaluation => Name checking => Type checking => Program
  *
  * ### Example
  * ```js
@@ -14,7 +15,7 @@ import { ProgramGrammar, semantics } from "./program"
  * 10 RETURN 0
  * End Function
  * `))
- * // => 8
+ * // => {functions:[{name: 'Initialize', arg}]}
  * ```
  *
  * @param code - String containing the SC code.
@@ -24,7 +25,7 @@ export function parse(code: string): Program {
   const evaluated = evaluate(code);
   const context = getContext(evaluated);
 
-  // TODO catch matching errors
+  
   // TODO nameCheck
   nameCheck(evaluated, context);
   // TODO typeCheck
@@ -107,7 +108,7 @@ function check_rec(p: Program, actions: Action[]): Program {
   return p;
 }
 
-function nameCheck(evaluated: Program, context: Context) {
+export function nameCheck(evaluated: Program, context: Context) {
 
   const actions = [
     // function

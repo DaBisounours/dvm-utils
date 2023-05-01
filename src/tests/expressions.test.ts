@@ -1,5 +1,5 @@
 import { test, expect } from '@jest/globals';
-import { evaluate } from '../lib/parse';
+import { evaluate } from '../lib/main';
 import { Program, DVMType } from '../types/program';
 import { call, name, op, return_value, val } from '../lib/build';
 
