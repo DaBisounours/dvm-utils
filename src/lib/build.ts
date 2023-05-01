@@ -1,5 +1,6 @@
 import { BinaryOperator, DVMType, Dim, Expression, Statement, StatementDefinition, UnaryOperator } from "../types/program";
 
+/** These functions are useful to build the Program quicker */
 
 export function val(value: string | number): Expression<DVMType> {
     return { type: 'value', value }
