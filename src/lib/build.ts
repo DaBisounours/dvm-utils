@@ -147,7 +147,7 @@ export const op = {
 
 export function if_then(condition: Expression<DVMType>, then: number, line?: number): Statement {
     return {
-        line,
+        line: line === undefined ? 0 : line,
         type: 'branch',
         branch: {
             type: 'if-then',
@@ -158,7 +158,7 @@ export function if_then(condition: Expression<DVMType>, then: number, line?: num
 }
 if_then.else = function (condition: Expression<DVMType>, then: number, _else: number, line?: number): Statement {
     return {
-        line,
+        line: line === undefined ? 0 : line,
         type: 'branch',
         branch: {
             type: 'if-then-else',
@@ -170,7 +170,7 @@ if_then.else = function (condition: Expression<DVMType>, then: number, _else: nu
 }
 
 export function comment(text: string, line?: number): Statement {
-    return { line, type: 'comment', comment: text }
+    return { line: line === undefined ? 0 : line, type: 'comment', comment: text }
 }
 /*
 export function noop(line: number): Statement {
