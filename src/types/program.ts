@@ -41,7 +41,7 @@ export type StatementDefinition =
   | { type: 'let'; assign: Let }
   | { type: 'comment'; comment: string }
 
-export type Statement = { line: number } & StatementDefinition
+export type Statement<Option = {}> = { line: number } & StatementDefinition & Option
 
 export type Dim = {
   type: DVMType;
@@ -124,19 +124,21 @@ export type StringOperator =
   | CalcCommonOperator
 
 
-export type Expression<T extends DVMType> =
-  | {
-    type: 'value';
-    value: T extends 'string' ? string : number;
-  }
-  | {
-    type: 'operation';
-    operands: Expression<T>[];
-    operator: Operator<T>;
-    operationType: T;
-  }
-  | { type: 'function'; function: FunctionCall }
-  | { type: 'name'; name: string };
+export type Expression<T extends DVMType, Option = {}> =
+  Option & (
+    | {
+      type: 'value';
+      value: T extends 'string' ? string : number;
+    }
+    | {
+      type: 'operation';
+      operands: Expression<T>[];
+      operator: Operator<T>;
+      operationType: T;
+    }
+    | { type: 'function'; function: FunctionCall }
+    | { type: 'name'; name: string }
+  );
 
 export type Operator<T extends DVMType> = T extends 'string'
   ?
