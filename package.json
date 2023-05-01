@@ -1,5 +1,5 @@
 {
-  "name": "dvm-parser",
+  "name": "dvm-utils",
   "version": "1.0.0",
   "main": "dist/index",
   "typings": "dist/index",

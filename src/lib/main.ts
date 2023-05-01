@@ -9,7 +9,7 @@ import { ProgramGrammar, semantics } from "./parse/evaluate"
  *
  * ### Example
  * ```js
- * import { parse } from 'dvm-parser'
+ * import { parse } from 'dvm-utils'
  * console.log(parse(`
  * Function Initialize() Uint64
  * 10 RETURN 0
@@ -42,7 +42,7 @@ export function parse(code: string): Program {
  *
  * ### Example
  * ```js
- * import { evaluate } from 'dvm-parser'
+ * import { evaluate } from 'dvm-utils'
  * console.log(evaluate(`
  * Function Initialize() Uint64
  * 10 RETURN 0
