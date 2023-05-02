@@ -120,7 +120,7 @@ This package is written in Typescript and can be used in any Node or browser app
 * Parse a DVM-BASIC program :
 ```ts
 import { parse } from 'dvm-utils'
-import { Program } from 'dvm-utils/types/program'
+import { Program } from 'dvm-utils/src/types/program'
 
 const code: string = `
 Function Initialize() Uint64
@@ -132,7 +132,7 @@ const program: Program = parse(code);
 
 console.log(program)
 ```
-*WIP: build a program and generate code.*
+*WIP: build a program and generate code. Check out src/tests folders for undocumented examples*
 <!--
 _For more examples, please refer to the [Documentation](https://example.com)_
 -->
