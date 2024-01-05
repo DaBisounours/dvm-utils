@@ -1,10 +1,9 @@
-import { Program } from "../types/program"
+import { Program } from "../types/program";
 import { getContext, nameCheck } from "./parse/check";
-import { ProgramGrammar, semantics } from "./parse/evaluate"
-
+import { ProgramGrammar, semantics } from "./parse/evaluate";
 
 /**
- * Parses DVM-BASIC code: 
+ * Parses DVM-BASIC code:
  * Evaluation => Name checking => Type checking => Program
  *
  * ### Example
@@ -30,12 +29,11 @@ export function parse(code: string): Program {
 
   // Checks
   nameCheck(evaluated, context);
-  
+
   // TODO typeCheck
 
   return evaluated;
 }
-
 
 /**
  * Evaluates DVM-BASIC code only. Part of the parsing process. Useful when you do not need name and type checking.
@@ -57,16 +55,12 @@ export function parse(code: string): Program {
 export function evaluate(code: string): Program {
   const programParser = ProgramGrammar;
 
-  const match = programParser.match(code)
+  const match = programParser.match(code);
 
-  // TODO throw nice error
   if (match.failed()) {
-    return {
-      functions: []
-    }
+    throw match.message;
   }
 
-  let evaluated: Program = semantics(match).eval()
-  return evaluated
-
+  let evaluated: Program = semantics(match).eval();
+  return evaluated;
 }
