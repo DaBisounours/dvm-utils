@@ -182,3 +182,20 @@ type Context = {
     [name: string]: NameInfo;
   };
 };
+
+export function lineCheck(evaluated: Program, context: Context) {
+  evaluated.functions.forEach((f) => {
+    const lines = f.statements.map((s) => s.line);
+    const hasDuplicates = new Set(lines).size !== lines.length;
+    if (hasDuplicates) {
+      const duplicates = lines.filter(
+        (li) => lines.filter((lj) => li == lj).length > 1
+      );
+      console.log({ duplicates });
+
+      throw new Error(
+        `Found duplicate lines in function "${f.name}" (lines ${duplicates})`
+      );
+    }
+  });
+}

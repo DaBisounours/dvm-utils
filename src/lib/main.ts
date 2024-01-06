@@ -1,5 +1,5 @@
 import { Program } from "../types/program";
-import { getContext, nameCheck } from "./parse/check";
+import { getContext, lineCheck, nameCheck } from "./parse/check";
 import { ProgramGrammar, semantics } from "./parse/evaluate";
 
 /**
@@ -28,6 +28,7 @@ export function parse(code: string): Program {
   const context = getContext(evaluated);
 
   // Checks
+  lineCheck(evaluated, context);
   nameCheck(evaluated, context);
 
   // TODO typeCheck
