@@ -186,7 +186,7 @@ export type Context = {
 export function lineCheck(evaluated: Program, context: Context) {
   evaluated.functions.forEach((f) => {
     const lines = f.statements
-      .filter((s) => s.type != "comment")
+      .filter((s) => s.type != "comment" && s.type != "dim")
       .map((s) => s.line);
     const hasDuplicates = new Set(lines).size !== lines.length;
     if (hasDuplicates) {

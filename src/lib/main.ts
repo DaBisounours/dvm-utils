@@ -83,7 +83,7 @@ export function evaluate(code: string): Program {
  */
 export function generate(
   program: Program,
-  options?: { minify?: boolean; comments?: boolean }
+  options?: { minify?: boolean; comments?: boolean; optimizeSpace?: boolean }
 ): { code: string; mapping: Mapping | null } {
   let mapping = null;
   if (options?.minify) {
@@ -96,5 +96,8 @@ export function generate(
     mapping = minified.mapping;
   }
   // Generate code
-  return { code: generateCode(program, options?.comments || false), mapping };
+  return {
+    code: generateCode(program, options?.comments, options.optimizeSpace),
+    mapping,
+  };
 }

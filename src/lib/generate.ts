@@ -1,5 +1,7 @@
 import {
+  Argument,
   DVMType,
+  Dim,
   Expression,
   FunctionType,
   Program,
@@ -54,7 +56,10 @@ export function minifyProgram(context: Context, program: Program) {
         f.name = newName;
       }
 
-      console.dir({ when: "before", f, program }, { depth: null });
+      f.args = f.args.map((a) =>
+        a.name == oldName ? { ...a, name: newName } : a
+      );
+
       f.statements = f.statements.map((s) => {
         switch (s.type) {
           case "branch":
@@ -102,7 +107,7 @@ export function minifyProgram(context: Context, program: Program) {
         }
         return s;
       });
-      console.dir({ when: "after", f, program }, { depth: null });
+
       return f;
     });
   });
@@ -142,42 +147,109 @@ function findAndReplaceInExpression(
   return expression;
 }
 
-export function generateCode(program: Program, keepComments: boolean): string {
+export function generateCode(
+  program: Program,
+  keepComments: boolean,
+  optimizeSpace: boolean
+): string {
   return program.functions
-    .map((f) => generateFunction(f, keepComments))
-    .join("\n\n");
+    .map((f) => generateFunction(f, keepComments, optimizeSpace))
+    .join(optimizeSpace ? "\n" : "\n\n");
 }
 
-function generateFunction(f: FunctionType, keepComments: boolean): string {
-  return `Function ${f.name}(${generateArgs(f.args)}) ${toDVMType(
-    f.return
-  )}${generateStatements(f.statements, keepComments)}\nEnd Function`;
+function generateFunction(
+  f: FunctionType,
+  keepComments: boolean,
+  optimizeSpace: boolean
+): string {
+  return `Function ${f.name}(${generateArgs(
+    f.args,
+    optimizeSpace
+  )}) ${toDVMType(f.return)}${generateStatements(
+    f.statements,
+    keepComments,
+    optimizeSpace
+  )}\nEnd Function`;
 }
 
-function generateArgs(args: import("../types/program").Argument[]): string {
-  return args.map((a) => `${a.name} ${toDVMType(a.type)}`).join(", ");
+function generateArgs(args: Argument[], optimizeSpace: boolean): string {
+  return args
+    .map((a) => `${a.name} ${toDVMType(a.type)}`)
+    .join(optimizeSpace ? "," : ", ");
 }
 
-function generateStatements(statements: Statement[], keepComments: boolean) {
+function generateStatements(
+  statements: Statement[],
+  keepComments: boolean,
+  optimizeSpace: boolean
+) {
   if (!keepComments) {
     statements = statements.filter((s) => s.type != "comment");
   }
-  return statements
-    .map(
-      (s) =>
-        `${
-          s.type == "comment" ? "\t" : "\n\t" + s.line + "\t"
-        }${generateStatement(s)}`
+
+  const grouped = statements.reduce(
+    (prevArray: (Statement | Statement[])[], current) => {
+      const prev = prevArray.at(-1);
+      if (
+        current.type === "dim" &&
+        prev !== undefined &&
+        Array.isArray(prev) &&
+        prev.at(-1).line == current.line
+      ) {
+        return [...prevArray.slice(0, -1), [...prev, current]];
+      }
+      if (current.type === "dim") {
+        return [...prevArray, [current]];
+      }
+      return [...prevArray, current];
+    },
+    []
+  );
+
+  const groupedDims = Object.values(grouped);
+
+  return groupedDims
+    .map((s) =>
+      Array.isArray(s)
+        ? generateDims(s as DimStatement[], optimizeSpace) //! warning might hanlde other groups later, will fail
+        : `${
+            s.type == "comment"
+              ? optimizeSpace
+                ? ""
+                : "\t"
+              : (optimizeSpace ? "\n" : "\n\t") + s.line + "\t"
+          }${generateStatement(s, optimizeSpace)}`
     )
     .join("");
 }
 
-function generateStatement(s: Statement) {
+type DimStatement = {
+  line: number;
+} & {
+  type: "dim";
+  declare: Dim;
+};
+
+function generateDims(statements: DimStatement[], optimizeSpace: boolean): any {
+  if (statements.length > 0 && statements.every((s) => s.type == "dim")) {
+    return `\n${optimizeSpace ? "" : "\t"}${
+      statements.at(0).line
+    }\tDIM ${statements
+      .map((s: DimStatement) => s.declare.name)
+      .join(optimizeSpace ? "," : ", ")} AS ${toDVMType(
+      statements.at(0).declare.type
+    )}`;
+  }
+  throw "generateDims: wrong usage";
+}
+
+function generateStatement(s: Statement, optimizeSpace: boolean) {
   switch (s.type) {
     case "branch":
       const base = `IF ${generateExpression(
         s.branch.condition,
-        true
+        true,
+        optimizeSpace
       )} THEN GOTO ${s.branch.then}`;
       if (s.branch.type === "if-then-else") {
         return base + ` ELSE GOTO ${s.branch.else}`;
@@ -190,32 +262,34 @@ function generateStatement(s: Statement) {
     case "dim":
       return `DIM ${s.declare.name} AS ${toDVMType(s.declare.type)}`;
     case "expression":
-      return generateExpression(s.expression, true);
+      return generateExpression(s.expression, true, optimizeSpace);
     case "goto":
       return `GOTO ${s.goto}`;
     case "let":
       return `LET ${s.assign.name} = ${generateExpression(
         s.assign.expression,
-        true
+        true,
+        optimizeSpace
       )}`;
     case "return":
-      return "RETURN " + generateExpression(s.expression, true);
+      return "RETURN " + generateExpression(s.expression, true, optimizeSpace);
   }
 }
 
 function generateExpression(
   expression: Expression<DVMType, {}>,
-  topLevel = false
+  topLevel = false,
+  optimizeSpace: boolean
 ) {
   switch (expression.type) {
     case "function":
       return `${expression.function.name}(${expression.function.args
-        .map((a) => generateExpression(a, true))
-        .join(", ")})`;
+        .map((a) => generateExpression(a, true, optimizeSpace))
+        .join(optimizeSpace ? "," : ", ")})`;
     case "name":
       return expression.name;
     case "operation":
-      return generateOperation(expression, topLevel);
+      return generateOperation(expression, topLevel, optimizeSpace);
     case "value":
       return typeof expression.value == "string"
         ? `"${expression.value}"`
@@ -230,7 +304,8 @@ function toDVMType(t: DVMType) {
 }
 function generateOperation(
   expression: Expression<DVMType, {}>,
-  topLevel = false
+  topLevel: boolean,
+  optimizeSpace: boolean
 ) {
   if (expression.type === "operation") {
     let e = "";
@@ -244,9 +319,16 @@ function generateOperation(
       e = `${operator} ${expression.operands[0]}`;
       return topLevel ? e : `(${e})`;
     }
+    const spacer = optimizeSpace ? "" : " ";
     e = `${generateExpression(
-      expression.operands[0]
-    )} ${operator} ${generateExpression(expression.operands[1])}`;
+      expression.operands[0],
+      false,
+      optimizeSpace
+    )}${spacer}${operator}${spacer}${generateExpression(
+      expression.operands[1],
+      false,
+      optimizeSpace
+    )}`;
     return topLevel ? e : `(${e})`;
   }
   throw "generateOperation: wrong usage";
