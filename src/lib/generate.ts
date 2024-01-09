@@ -42,8 +42,6 @@ export function minifyProgram(context: Context, program: Program) {
     ),
   };
 
-  console.dir({ mapping }, { depth: null });
-
   Object.entries(mapping.names).forEach(([newName, info]) => {
     const oldName = info.name;
 

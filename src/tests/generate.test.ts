@@ -254,7 +254,6 @@ test("minification", () => {
     functions: [initializeFunction, privateFunction],
   };
   const { code } = generate(program, { minify: true, comments: false });
-  console.log({ code });
 
   expect(code).toBe(
     `Function Initialize() Uint64
@@ -293,7 +292,6 @@ test("grouped dims", () => {
     functions: [initializeFunction, privateFunction],
   };
   const { code } = generate(program, { minify: true, comments: false });
-  console.log({ code });
 
   expect(code).toBe(
     `Function Initialize() Uint64
@@ -349,8 +347,6 @@ End Function`;
     minify: true,
     optimizeSpace: true,
   });
-  console.log(code);
-  console.log(expected);
 
   expect(code).toBe(expected);
 });
