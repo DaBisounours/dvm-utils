@@ -97,7 +97,7 @@ export function generate(
   }
   // Generate code
   return {
-    code: generateCode(program, options?.comments, options.optimizeSpace),
+    code: generateCode(program, options?.comments, options?.optimizeSpace),
     mapping,
   };
 }

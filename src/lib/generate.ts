@@ -19,16 +19,15 @@ type NameType = "function" | "variable" | "argument" | "dvm-function";
 
 /** These functions are useful to generate code from a structured Program */
 export function minifyProgram(context: Context, program: Program) {
-  let currentNameCount = {
-    function: 0,
-    variable: 0,
-    argument: 0,
-  };
-  function getNewName(nameType: NameType) {
-    return (
-      (nameType == "variable" ? "v" : nameType == "argument" ? "a" : "f") +
-      currentNameCount[nameType]++
-    );
+  // az => [97, 122]
+
+  let currentNameCount = 0;
+  function getNewName() {
+    let res = [...(currentNameCount++ + 10).toString(36)].reverse();
+    if (res[0] == "z") {
+      currentNameCount += 10;
+    }
+    return res.join("");
   }
   const mapping: Mapping = {
     names: Object.fromEntries(
@@ -39,10 +38,7 @@ export function minifyProgram(context: Context, program: Program) {
             t != "dvm-function" && !(t == "function" && /[A-Z]/.test(name[0]))
         )
         // create new names
-        .map(([oldName, info]) => [
-          getNewName(info.type),
-          { ...info, name: oldName },
-        ])
+        .map(([oldName, info]) => [getNewName(), { ...info, name: oldName }])
     ),
   };
 
