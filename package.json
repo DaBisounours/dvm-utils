@@ -1,6 +1,6 @@
 {
   "name": "dvm-utils",
-  "version": "1.2.4",
+  "version": "1.2.4-a",
   "main": "dist/index",
   "typings": "dist/index",
   "license": "MIT",
