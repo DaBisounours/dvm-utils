@@ -1,4 +1,5 @@
 import { Program } from "../types/program";
+import { Mapping, generateCode, minifyProgram } from "./generate";
 import { getContext, lineCheck, nameCheck } from "./parse/check";
 import { ProgramGrammar, semantics } from "./parse/evaluate";
 
@@ -64,4 +65,36 @@ export function evaluate(code: string): Program {
 
   let evaluated: Program = semantics(match).eval();
   return evaluated;
+}
+
+/**
+ * Generate DVM-BASIC code from a Program.
+ *
+ * ### Example
+ * ```js
+ * import { generate } from 'dvm-utils'
+ * const { code, mapping } = generate(program, { minify: true }
+ * console.log(code, mapping)
+ * ```
+ *
+ * @param program - program.
+ * @param options - options such as minification, ignore comments.
+ * @returns Generated program code and mapping if `minify` option is `true`.
+ */
+export function generate(
+  program: Program,
+  options?: { minify?: boolean; comments?: boolean }
+): { code: string; mapping: Mapping | null } {
+  let mapping = null;
+  if (options?.minify) {
+    // Get context (names and their types)
+    const context = getContext(program);
+
+    // Minify
+    const minified = minifyProgram(context, program);
+    program = minified.program;
+    mapping = minified.mapping;
+  }
+  // Generate code
+  return { code: generateCode(program, options?.comments || false), mapping };
 }

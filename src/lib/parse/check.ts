@@ -165,9 +165,9 @@ export function getContext(evaluated: Program): Context {
   return context;
 }
 
-type FlatNameInfo = NameInfo & { name: string };
+export type FlatNameInfo = NameInfo & { name: string };
 
-type NameInfo =
+export type NameInfo =
   | {
       type: "variable" | "argument";
       declaredType: DVMType;
@@ -177,7 +177,7 @@ type NameInfo =
       type: "function" | "dvm-function";
       declaredType: DVMType;
     };
-type Context = {
+export type Context = {
   names: {
     [name: string]: NameInfo;
   };
@@ -185,7 +185,9 @@ type Context = {
 
 export function lineCheck(evaluated: Program, context: Context) {
   evaluated.functions.forEach((f) => {
-    const lines = f.statements.map((s) => s.line);
+    const lines = f.statements
+      .filter((s) => s.type == "comment")
+      .map((s) => s.line);
     const hasDuplicates = new Set(lines).size !== lines.length;
     if (hasDuplicates) {
       const duplicates = lines.filter(
