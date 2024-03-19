@@ -138,7 +138,43 @@ _For more examples, please refer to the [Documentation](https://example.com)_
 -->
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+* Generate code from the `Program` data structure
 
+```ts
+
+import { generate } from "dvm-utils";
+import { Program, FunctionType, DVMType } from "dvm-utils/src/types/program";
+import { return_value } from "dvm-utils/src/lib/build";
+
+const initializeFunction: FunctionType = {
+  name: "Initialize",
+  return: DVMType.Uint64,
+  args: [],
+  statements: [return_value(0, 10)],
+};
+const program: Program = {
+  functions: [initializeFunction],
+};
+const { code } = generate(program);
+
+console.log({ code });
+```
+should output
+```basic
+Function Initialize() Uint64
+  10  RETURN 0
+End Function
+```
+
+  * Generation options
+```ts
+
+const { code } = generate(program, {
+  minify: false, // Minifies the variable/function names. Makes the code harder to read.
+  optimizeSpace: true, // Removes any unnecessary space
+  comments: false, // Leaves comments in the code
+});
+```
 
 <!-- ROADMAP -->
 ## Roadmap
